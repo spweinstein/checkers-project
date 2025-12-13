@@ -33,3 +33,7 @@ div.cell.has-piece.white > div {
 div.cell.has-piece.black > div {
   background-color: rgb(95, 78, 52);
 }
+
+div.cell.has-piece.king > div {
+  background-image: url("./checkers-crown.png");
+}
