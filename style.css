@@ -1,0 +1,35 @@
+div.game {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  aspect-ratio: 1;
+  width: 500px;
+  border: 5px solid black;
+}
+
+div.game > div.cell.dark {
+  background-color: brown;
+}
+
+div.game div.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1/1;
+}
+
+div.cell.has-piece > div {
+  border-radius: 50%;
+  border: 3px solid black;
+  width: 80%;
+  aspect-ratio: 1/1;
+  cursor: pointer;
+}
+
+div.cell.has-piece.white > div {
+  background-color: beige;
+}
+
+div.cell.has-piece.black > div {
+  background-color: rgb(95, 78, 52);
+}
