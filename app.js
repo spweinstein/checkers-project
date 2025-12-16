@@ -123,7 +123,7 @@ function initialize() {
   isTie = false;
   selectedPieceIndex = null;
   possibleMoveIndices.splice(0, possibleMoveIndices.length);
-  Object.keys(possibleJumps).forEach((key) => delete possibleJumps[key]);
+  clearPossibleJumps();
   for (let i = 0; i < 64; i++) {
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
@@ -228,11 +228,27 @@ function movePiece(fromIdx, toIdx) {
     console.log(`Piece is in last row; making king`);
     crownPiece(toIdx);
   }
-  switchPlayerTurn();
-  unselectPiece();
+  // switchPlayerTurn();
+  // unselectPiece();
 }
 
-function basicMove(fromIdx, toIdx) {}
+function basicMove(fromIdx, toIdx) {
+  movePiece(fromIdx, toIdx);
+  switchPlayerTurn();
+  unselectPiece();
+  checkForWinner();
+  checkForTie();
+}
+
+function jumpMove(jump) {
+  movePiece(jump.originId, jump.jumpToId);
+  removePiece(jump.captureCellId);
+  switchPlayerTurn();
+  unselectPiece();
+  clearPossibleJumps();
+  checkForWinner();
+  checkForTie();
+}
 
 function hasDoubleJump(fromIdx) {}
 
@@ -240,6 +256,7 @@ function getJumpMoves(index) {
   const neighbors = getDiagonalNeighbors(index);
   const originCoords = [getRowIndex(index), getColIndex(index)];
   const [rowIdx, colIdx] = originCoords;
+  const originId = index;
   const jumps = neighbors
     .map((captureCellId) => {
       const [neighborRowIdx, neighborColIdx] = [
@@ -254,6 +271,7 @@ function getJumpMoves(index) {
       const jumpToId = getCellIndex(...jumpCoords);
       // console.log(rowDiff, colDiff);
       return {
+        originId,
         originCoords,
         jumpCoords,
         captureCellId,
@@ -267,7 +285,7 @@ function getJumpMoves(index) {
         isCellEmpty(jump.jumpToId)
       );
     });
-  Object.keys(possibleJumps).forEach((key) => delete possibleJumps.key);
+  clearPossibleJumps();
   jumps.forEach((jump) => {
     possibleJumps[jump.jumpToId] = jump;
   });
@@ -295,10 +313,15 @@ function selectPiece(cellIndex) {
   getLegalMoves(cellIndex);
 }
 
+function clearPossibleJumps() {
+  console.log(`Clearing possible jumps...`);
+  Object.keys(possibleJumps).forEach((key) => delete possibleJumps[key]);
+}
+
 function unselectPiece() {
   selectedPieceIndex = null;
   possibleMoveIndices.length = 0;
-  Object.keys(possibleJumps).forEach((key) => delete possibleJumps[key]);
+  // clearPossibleJumps();
 }
 
 function checkForWinner() {
@@ -340,19 +363,14 @@ function handleClick(event) {
     console.log(
       `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex}`
     );
-    movePiece(selectedPieceIndex, cellIndex);
-    checkForWinner();
-    checkForTie();
+    basicMove(selectedPieceIndex, cellIndex);
   } else if (cellIndex in possibleJumps) {
     const jump = possibleJumps[cellIndex];
     console.log(
       `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex} and capturing ${jump.captureCellId}`
     );
 
-    movePiece(selectedPieceIndex, cellIndex);
-    removePiece(jump.captureCellId);
-    checkForWinner();
-    checkForTie();
+    jumpMove(jump);
   }
   render();
 }
