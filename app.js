@@ -6,6 +6,7 @@ const players = ["White", "Black"];
 const pieceTypes = ["Regular", "King"];
 const boardValues = [];
 const possibleMoveIndices = [];
+const possibleJumps = {};
 const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
 
@@ -65,7 +66,7 @@ function isInLastRow(cellId) {
   const rowIndex = getRowIndex(cellId);
   return (
     (turn === players[0] && rowIndex === 7) ||
-    (turn === players[1] && rowIndex === 7)
+    (turn === players[1] && rowIndex === 0)
   );
 }
 
@@ -118,14 +119,6 @@ function getEmptyDiagonalNeighbors(cellId) {
 function initialize() {
   let columnIndex = 0;
   for (let i = 0; i < 64; i++) {
-    // if((i+1)%8==0){
-    //   columnIndex+=1;
-    //   cellIndicesByColumn[columnIndex] = [i];
-    // }
-    // else {
-    //   cellIndicesByColumn[columnIndex].push(i);
-    // }
-
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
     const isRowEven = rowIndex % 2 === 0;
@@ -155,10 +148,6 @@ function initialize() {
 
 /*===========================RENDER=======================*/
 
-function updateCell(cellIndex) {
-  const cellValue = boardValues[index];
-}
-
 function updateMessage(msg) {
   msgCell.textContent = msg;
 }
@@ -171,17 +160,17 @@ function render() {
     // check if cell has a piece
     // if so, update cell's classes to reflect this
     if (cellValue.startsWith(players[0])) {
-      cell.classList.add("has-piece", "white");
-      if (cellValue.endsWith("king")) {
-        cell.classList.add("king");
+      cell.classList.add("has-piece", players[0]);
+      if (cellValue.endsWith(pieceTypes[1])) {
+        cell.classList.add(pieceTypes[1]);
       }
     } else if (cellValue.startsWith(players[1])) {
-      cell.classList.add("has-piece", "black");
-      if (cellValue.endsWith("king")) {
-        cell.classList.add("king");
+      cell.classList.add("has-piece", players[1]);
+      if (cellValue.endsWith(pieceTypes[1])) {
+        cell.classList.add(pieceTypes[1]);
       }
     } else {
-      cell.classList.remove("has-piece", "black", "white", "king");
+      cell.classList.remove("has-piece", players[1], players[0], pieceTypes[1]);
     }
 
     // check if cell is selected
@@ -190,7 +179,7 @@ function render() {
     else cell.classList.remove("selected");
     // check if cell is a possible mvoe
     // if so, update class to reflect this
-    if (possibleMoveIndices.includes(index))
+    if (possibleMoveIndices.includes(index) || index in possibleJumps)
       cell.classList.add("possible-move");
     else cell.classList.remove("possible-move");
   });
@@ -214,11 +203,21 @@ function removePiece(index) {
   return pieceValue;
 }
 
-function crownPiece(index) {}
+function crownPiece(index) {
+  // if (isInLastRow(index)) {
+  boardValues[index] = boardValues[index].replace("Regular", "King");
+  // boardCells[index].querySelector("div").textContent = "King";
+  // }
+}
 
 function movePiece(fromIdx, toIdx) {
+  console.log(`Moving ${fromIdx} to ${toIdx}`);
   const [player, pieceType] = removePiece(fromIdx).split("_");
   addPiece(toIdx, player, pieceType);
+  if (isInLastRow(toIdx)) {
+    console.log(`Piece is in last row; making king`);
+    crownPiece(toIdx);
+  }
   switchPlayerTurn();
   unselectPiece();
 }
@@ -256,15 +255,21 @@ function getJumpMoves(index) {
         isCellEmpty(jump.jumpToId)
       );
     });
-  return jumps;
+  Object.keys(possibleJumps).forEach((key) => delete possibleJumps.key);
+  jumps.forEach((jump) => {
+    possibleJumps[jump.jumpToId] = jump;
+  });
 }
 
 // Needs integration with getEmptyDiagonalNeighbors + later with jumps and double-jumps
-function getLegalMoves(index) {
-  const rowIndex = getRowIndex(index);
-  const cell = boardCells[index];
-  const simpleMoves = getEmptyDiagonalNeighbors(index);
-  const jumpMoves = getJumpMoves(index);
+function getLegalMoves(cellIndex) {
+  const rowIndex = getRowIndex(cellIndex);
+  const cell = boardCells[cellIndex];
+  const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
+  possibleMoveIndices.splice(0, possibleMoveIndices.length, ...emptyNeighbors);
+  getJumpMoves(cellIndex);
+  //possibleJumps.splice(0, possibleJumps.length, ...jumpMoves);
+  //possibleMoveIndices.push(...possibleJumps.map((jump) => jump.jumpToId));
 }
 
 /*
@@ -273,14 +278,15 @@ function getLegalMoves(index) {
 */
 function selectPiece(cellIndex) {
   selectedPieceIndex = cellIndex;
-  const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
-  possibleMoveIndices.splice(0, possibleMoveIndices.length, ...emptyNeighbors);
+  // const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
+  // possibleMoveIndices.splice(0, possibleMoveIndices.length, ...emptyNeighbors);
   getLegalMoves(cellIndex);
 }
 
 function unselectPiece() {
   selectedPieceIndex = null;
   possibleMoveIndices.length = 0;
+  Object.keys(possibleJumps).forEach((key) => delete possibleJumps[key]);
 }
 
 function checkForWinner() {}
@@ -310,13 +316,23 @@ function handleClick(event) {
     unselectPiece();
     selectPiece(cellIndex);
   } else if (possibleMoveIndices.includes(cellIndex)) {
-    console.log(`Clicked in possible move square ${cellIndex}`);
+    console.log(
+      `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex}`
+    );
     movePiece(selectedPieceIndex, cellIndex);
-  }
+    checkForWinner();
+    checkForTie();
+  } else if (cellIndex in possibleJumps) {
+    const jump = possibleJumps[cellIndex];
+    console.log(
+      `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex} and capturing ${jump.captureCellId}`
+    );
 
-  checkForWinner();
-  checkForTie();
-  // updateSelected();
+    movePiece(selectedPieceIndex, cellIndex);
+    removePiece(jump.captureCellId);
+    checkForWinner();
+    checkForTie();
+  }
   render();
 }
 

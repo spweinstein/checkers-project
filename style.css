@@ -34,16 +34,16 @@ div.cell.has-piece > div {
   cursor: pointer;
 }
 
-div.cell.has-piece.white > div {
+div.cell.has-piece.White > div {
   background-color: beige;
 }
 
-div.cell.has-piece.black > div {
+div.cell.has-piece.Black > div {
   background-color: rgb(95, 78, 52);
 }
 
-div.cell.has-piece.king > div {
-  background-image: url("./checkers-crown.png");
+div.cell.has-piece.King > div {
+  border: 6px double black;
 }
 
 div#message {
