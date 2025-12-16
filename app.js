@@ -1,5 +1,3 @@
-// const { cloneElement } = require("react");
-
 /*===========================CONSTANTS=======================*/
 
 const players = ["White", "Black"];
@@ -15,6 +13,7 @@ let turn = players[0];
 let selectedPieceIndex = null;
 let winner = false;
 let isTie = false;
+let isJumping = false;
 
 const state = {
   boardValues,
@@ -188,6 +187,13 @@ function render() {
     if (possibleMoveIndices.includes(index) || index in possibleJumps)
       cell.classList.add("possible-move");
     else cell.classList.remove("possible-move");
+
+    //check if cell is king and change to reflect
+    if (cellValue.includes("King")) {
+      cell.classList.add("King");
+    } else {
+      cell.classList.remove("King");
+    }
   });
 
   // updateSelected();
@@ -233,6 +239,7 @@ function movePiece(fromIdx, toIdx) {
 }
 
 function basicMove(fromIdx, toIdx) {
+  console.log(`Called basicMove(${fromIdx}, ${toIdx})`);
   movePiece(fromIdx, toIdx);
   switchPlayerTurn();
   unselectPiece();
@@ -241,8 +248,19 @@ function basicMove(fromIdx, toIdx) {
 }
 
 function jumpMove(jump) {
+  console.log(`Called jumpMove(${jump.originId}, ${jump.jumpToId})`);
+  isJumping = true;
+
   movePiece(jump.originId, jump.jumpToId);
   removePiece(jump.captureCellId);
+  unselectPiece();
+  selectPiece(jump.jumpToId);
+  // selectPiece(jump.jumpToid);
+
+  // Before resolving the jump and switching player turn, let's check if there are any other jumps available
+
+  if (Object.keys(possibleJumps).length !== 0) return;
+  isJumping = false;
   switchPlayerTurn();
   unselectPiece();
   clearPossibleJumps();
@@ -295,9 +313,17 @@ function getJumpMoves(index) {
 function getLegalMoves(cellIndex) {
   const rowIndex = getRowIndex(cellIndex);
   const cell = boardCells[cellIndex];
-  const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
-  possibleMoveIndices.splice(0, possibleMoveIndices.length, ...emptyNeighbors);
   getJumpMoves(cellIndex);
+  if (Object.keys(possibleJumps).length !== 0) isJumping = true;
+
+  if (!isJumping) {
+    const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
+    possibleMoveIndices.splice(
+      0,
+      possibleMoveIndices.length,
+      ...emptyNeighbors
+    );
+  }
   //possibleJumps.splice(0, possibleJumps.length, ...jumpMoves);
   //possibleMoveIndices.push(...possibleJumps.map((jump) => jump.jumpToId));
 }
