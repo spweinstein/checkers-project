@@ -6,7 +6,6 @@ const players = ["White", "Black"];
 const pieceTypes = ["Regular", "King"];
 const boardValues = [];
 const possibleMoveIndices = [];
-const possibleMoveSquares = [];
 const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
 
@@ -23,7 +22,6 @@ const state = {
   isTie,
   selectedPieceIndex,
   possibleMoveIndices,
-  possibleMoveSquares,
 };
 
 /*===========================GRID HELPER FUNCTIONS=======================*/
@@ -148,33 +146,6 @@ function initialize() {
 
 /*===========================RENDER=======================*/
 
-/*
-  updateSelected()
-  Updates the DOM to reflect the change in selected piece, if any
-  Also updates possible moves
-*/
-
-function updateSelected() {
-  console.log("Updating selected element + possible moves...");
-  if (selectedPieceIndex === null) return;
-  const prevElem = document.querySelector("div.selected");
-  if (prevElem) prevElem.classList.toggle("selected");
-  const newElem = boardCells[selectedPieceIndex];
-  newElem.classList.toggle("selected");
-  possibleMoveSquares.forEach((square) =>
-    square.classList.remove("possible-move")
-  );
-  possibleMoveSquares.splice(
-    0,
-    possibleMoveSquares.length,
-    ...possibleMoveIndices.map((squareIndex) => {
-      const cell = boardCells[squareIndex];
-      cell.classList.add("possible-move");
-      return cell;
-    })
-  );
-}
-
 function updateCell(cellIndex) {
   const cellValue = boardValues[index];
 }
@@ -187,6 +158,9 @@ function render() {
   console.log("Rendering...");
   boardCells.forEach((cell, index) => {
     const cellValue = boardValues[index];
+
+    // check if cell has a piece
+    // if so, update cell's classes to reflect this
     if (cellValue.startsWith(players[0])) {
       cell.classList.add("has-piece", "white");
       if (cellValue.endsWith("king")) {
@@ -200,9 +174,19 @@ function render() {
     } else {
       cell.classList.remove("has-piece", "black", "white", "king");
     }
+
+    // check if cell is selected
+    // if so, update class to reflect this
+    if (index === selectedPieceIndex) cell.classList.add("selected");
+    else cell.classList.remove("selected");
+    // check if cell is a possible mvoe
+    // if so, update class to reflect this
+    if (possibleMoveIndices.includes(index))
+      cell.classList.add("possible-move");
+    else cell.classList.remove("possible-move");
   });
 
-  updateSelected();
+  // updateSelected();
   updateMessage(`It is player ${turn}'s turn`);
 }
 
