@@ -17,18 +17,15 @@ let isJumping = false;
 let forcedCaptures = false;
 
 const state = {
-  // boardValues,
-  // boardCells,
-  // turn,
-  // winner,
-  // isTie,
-  // isJumping,
-  // forcedCaptures,
-  // selectedPieceIndex,
-  // possibleMoveIndices,
-  // possibleJumps,
-  // players,
-  // pieceTypes,
+  boardValues,
+  //   boardCells,
+  winner,
+  isTie,
+  isJumping,
+  forcedCaptures,
+  selectedPieceIndex,
+  possibleMoveIndices,
+  possibleJumps,
 };
 
 /*===========================GRID HELPER FUNCTIONS=======================*/
@@ -40,6 +37,7 @@ function getRowIndex(cellId) {
 function getColIndex(cellId) {
   const rowIdx = getRowIndex(cellId);
   const rowStartIdx = rowIdx * 8;
+  const rowEndIdx = rowStartIdx + 7;
   // console.log(`
   //   Cell ${cellId} is in row ${rowIdx} which starts at ${rowStartIdx} and ends at ${rowEndIdx}
   //   `);
@@ -64,7 +62,7 @@ function isCellEnemy(state, cellIndex) {
   if (cellIndex === false) return false;
   const cellVal = getCellValue(state, cellIndex);
   if (cellVal === "") return false;
-  return cellVal.split("_")[0] !== state.turn;
+  return cellVal.split("_")[0] !== turn;
 }
 
 function isInLastRow(state, cellId) {
@@ -86,7 +84,6 @@ function getValidMoveRows(state, cellId) {
   const [player, pieceType] = cellValue.split("_");
   const [nextRowIdx, prevRowIdx] = [rowIndex + 1, rowIndex - 1];
   const idxs = [];
-  console.log(player, pieceType, rowIndex, nextRowIdx);
   if (pieceType === "King") {
     if (nextRowIdx <= 7) idxs.push(nextRowIdx);
     if (prevRowIdx >= 0) idxs.push(prevRowIdx);
@@ -116,22 +113,59 @@ function getValidNeighbors(state, cell) {
   return neighbors;
 }
 
+function findMoves(state) {
+  const player = state.turn;
+  const pieces = state.boardValues.filter((value) => value.includes(player));
+  const moves = [];
+  for (const cell of pieces) {
+    const validNeighbors = getValidNeighbors(state, cell);
+    const [row, col] = [getRowIndex(cell), getColIndex(cell)];
+    for (const neighbor of validNeighbors) {
+      if (isCellEmpty(neighbor)) {
+        moves.push({
+          from: cell,
+          to: neighbor,
+          captures: [],
+          type: "regular",
+        });
+      } else if (isCellEnemy(neighbor)) {
+        const [landingRow, landingCol] = [
+          getRowIndex(neighbor),
+          getColIndex(neighbor),
+        ];
+        const [rowDiff, colDiff] = [landingRow - rowIdx, landingCol - colIdx];
+        const jumpCoords = [rowIdx + rowDiff * 2, colIdx + colDiff * 2];
+        const jumpToId = getCellIndex(...jumpCoords);
+        if (isCellEmpty(jumpToId)) {
+          moves.push({
+            from: cell,
+            to: jumpToId,
+            captures: [neighbor],
+          });
+        }
+      }
+    }
+
+    return moves;
+  }
+}
+
+function getBasicMoves(state, cellId) {
+  const neighbors = getDiagonalNeighbors(state, cellId);
+  return neighbors.filter(isCellEmpty);
+}
+
 /*===========================INITIALIZATION=======================*/
 
-function initialize(state) {
-  state.winner = false;
-  state.isTie = false;
-  state.selectedPieceIndex = null;
-  state.possibleMoveIndices = [];
-  state.possibleJumps = {};
-  state.boardValues = [];
-  state.players = ["White", "Black"];
-  state.pieceTypes = ["Regular", "King"];
-  state.turn = state.players[0];
-  state.isJumping = false;
-  state.forcedCaptures = false;
+function initialize() {
+  let columnIndex = 0;
+  winner = false;
+  isTie = false;
+  selectedPieceIndex = null;
+  possibleMoveIndices.splice(0, possibleMoveIndices.length);
+  clearPossibleJumps();
   for (let i = 0; i < 64; i++) {
-    // removePiece(state, i);
+    removePiece(i);
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
     const isRowEven = rowIndex % 2 === 0;
@@ -144,11 +178,11 @@ function initialize(state) {
     const isDark = (isRowEven && isCellEven) || (!isRowEven && !isCellEven);
 
     if (isPlayer1 && isPiece) {
-      addPiece(state, i, players[0], "Regular");
+      addPiece(i, players[0], "Regular");
     } else if (isPlayer2 && isPiece) {
-      addPiece(state, i, players[1], "Regular");
+      addPiece(i, players[1], "Regular");
     } else {
-      removePiece(state, i);
+      removePiece(i);
     }
 
     if (isDark) {
@@ -156,7 +190,7 @@ function initialize(state) {
       // playableIndices.push(i);
     }
   }
-  render(state);
+  render();
 }
 
 /*===========================RENDER=======================*/
@@ -165,44 +199,36 @@ function updateMessage(msg) {
   msgCell.textContent = msg;
 }
 
-function render(state) {
+function render() {
   console.log("Rendering...");
   boardCells.forEach((cell, index) => {
-    const cellValue = state.boardValues[index];
+    const cellValue = boardValues[index];
 
     // check if cell has a piece
     // if so, update cell's classes to reflect this
-    if (cellValue.startsWith(state.players[0])) {
-      cell.classList.add("has-piece", state.players[0]);
-      cell.classList.remove(state.players[1]);
-      if (cellValue.endsWith(state.pieceTypes[1])) {
-        cell.classList.add(state.pieceTypes[1]);
+    if (cellValue.startsWith(players[0])) {
+      cell.classList.add("has-piece", players[0]);
+      cell.classList.remove(players[1]);
+      if (cellValue.endsWith(pieceTypes[1])) {
+        cell.classList.add(pieceTypes[1]);
       }
-    } else if (cellValue.startsWith(state.players[1])) {
-      cell.classList.add("has-piece", state.players[1]);
-      cell.classList.remove(state.players[0]);
-      if (cellValue.endsWith(state.pieceTypes[1])) {
-        cell.classList.add(state.pieceTypes[1]);
+    } else if (cellValue.startsWith(players[1])) {
+      cell.classList.add("has-piece", players[1]);
+      cell.classList.remove(players[0]);
+      if (cellValue.endsWith(pieceTypes[1])) {
+        cell.classList.add(pieceTypes[1]);
       }
     } else {
-      cell.classList.remove(
-        "has-piece",
-        state.players[1],
-        state.players[0],
-        state.pieceTypes[1]
-      );
+      cell.classList.remove("has-piece", players[1], players[0], pieceTypes[1]);
     }
 
     // check if cell is selected
     // if so, update class to reflect this
-    if (index === state.selectedPieceIndex) cell.classList.add("selected");
+    if (index === selectedPieceIndex) cell.classList.add("selected");
     else cell.classList.remove("selected");
     // check if cell is a possible mvoe
     // if so, update class to reflect this
-    if (
-      state.possibleMoveIndices.includes(index) ||
-      index in state.possibleJumps
-    )
+    if (possibleMoveIndices.includes(index) || index in possibleJumps)
       cell.classList.add("possible-move");
     else cell.classList.remove("possible-move");
 
@@ -214,79 +240,82 @@ function render(state) {
     }
   });
 
-  if (state.winner)
+  // updateSelected();
+  if (winner)
     updateMessage(
-      `Congratulations, player ${state.winner}! Hit reset to play again.`
+      `Congratulations, player ${winner}! Hit reset to play again.`
     );
-  else updateMessage(`It is player ${state.turn}'s turn`);
+  else updateMessage(`It is player ${turn}'s turn`);
 }
 
 /*===========================LOGIC=======================*/
-function addPiece(state, index, player, pieceType) {
-  state.boardValues[index] = `${player}_${pieceType}`;
+function addPiece(index, player, pieceType) {
+  boardValues[index] = `${player}_${pieceType}`;
 }
 
-function hasPiece(state, index) {
-  return state.boardValues[index] !== "";
+function hasPiece(index) {
+  return boardValues[index] !== "";
 }
 
-function removePiece(state, index) {
-  const pieceValue = state.boardValues[index];
-  state.boardValues[index] = "";
+function removePiece(index) {
+  const pieceValue = boardValues[index];
+  boardValues[index] = "";
   return pieceValue;
 }
 
-function crownPiece(state, index) {
+function crownPiece(index) {
   // if (isInLastRow(index)) {
-  state.boardValues[index] = state.boardValues[index].replace(
-    "Regular",
-    "King"
-  );
+  boardValues[index] = boardValues[index].replace("Regular", "King");
   // boardCells[index].querySelector("div").textContent = "King";
   // }
 }
 
-function movePiece(state, fromIdx, toIdx) {
+function movePiece(fromIdx, toIdx) {
   console.log(`Moving ${fromIdx} to ${toIdx}`);
-  const [player, pieceType] = removePiece(state, fromIdx).split("_");
-  addPiece(state, toIdx, player, pieceType);
-  if (isInLastRow(state, toIdx)) {
+  const [player, pieceType] = removePiece(fromIdx).split("_");
+  addPiece(toIdx, player, pieceType);
+  if (isInLastRow(toIdx)) {
     console.log(`Piece is in last row; making king`);
-    crownPiece(state, toIdx);
+    crownPiece(toIdx);
   }
+  // switchPlayerTurn();
+  // unselectPiece();
 }
 
-function basicMove(state, fromIdx, toIdx) {
+function basicMove(fromIdx, toIdx) {
   console.log(`Called basicMove(${fromIdx}, ${toIdx})`);
-  movePiece(state, fromIdx, toIdx);
-  switchPlayerTurn(state);
-  unselectPiece(state);
-  checkForWinner(state);
-  checkForTie(state);
+  movePiece(fromIdx, toIdx);
+  switchPlayerTurn();
+  unselectPiece();
+  checkForWinner();
+  checkForTie();
 }
 
-function jumpMove(state, jump) {
+function jumpMove(jump) {
   console.log(`Called jumpMove(${jump.originId}, ${jump.jumpToId})`);
-  state.isJumping = true;
+  isJumping = true;
 
-  movePiece(state, jump.originId, jump.jumpToId);
-  removePiece(state, jump.captureCellId);
-  unselectPiece(state);
-  selectPiece(state, jump.jumpToId);
+  movePiece(jump.originId, jump.jumpToId);
+  removePiece(jump.captureCellId);
+  unselectPiece();
+  selectPiece(jump.jumpToId);
+  // selectPiece(jump.jumpToid);
 
   // Before resolving the jump and switching player turn, let's check if there are any other jumps available
 
-  if (Object.keys(state.possibleJumps).length !== 0) return;
-  state.isJumping = false;
-  switchPlayerTurn(state);
-  unselectPiece(state);
-  clearPossibleJumps(state);
-  checkForWinner(state);
-  checkForTie(state);
+  if (Object.keys(possibleJumps).length !== 0) return;
+  isJumping = false;
+  switchPlayerTurn();
+  unselectPiece();
+  clearPossibleJumps();
+  checkForWinner();
+  checkForTie();
 }
 
-function getJumpMoves(state, index) {
-  const neighbors = getValidNeighbors(state, index);
+function hasDoubleJump(fromIdx) {}
+
+function getJumpMoves(index) {
+  const neighbors = getDiagonalNeighbors(index);
   const originCoords = [getRowIndex(index), getColIndex(index)];
   const [rowIdx, colIdx] = originCoords;
   const originId = index;
@@ -313,126 +342,123 @@ function getJumpMoves(state, index) {
     })
     .filter((jump) => {
       return (
-        isCellEnemy(state, jump.captureCellId) &&
+        isCellEnemy(jump.captureCellId) &&
         jump.jumpToId !== false &&
-        isCellEmpty(state, jump.jumpToId)
+        isCellEmpty(jump.jumpToId)
       );
     });
-  clearPossibleJumps(state);
+  clearPossibleJumps();
   jumps.forEach((jump) => {
-    state.possibleJumps[jump.jumpToId] = jump;
+    possibleJumps[jump.jumpToId] = jump;
   });
 }
 
 // Needs integration with getEmptyDiagonalNeighbors + later with jumps and double-jumps
-function getLegalMoves(state, cellIndex) {
+function getLegalMoves(cellIndex) {
   const rowIndex = getRowIndex(cellIndex);
   const cell = boardCells[cellIndex];
-  getJumpMoves(state, cellIndex);
-  if (Object.keys(state.possibleJumps).length !== 0 && state.forcedCaptures)
-    state.isJumping = true;
+  getJumpMoves(cellIndex);
+  if (Object.keys(possibleJumps).length !== 0 && forcedCaptures)
+    isJumping = true;
 
-  if (!state.isJumping) {
-    const emptyNeighbors = getValidNeighbors(state, cellIndex).filter((idx) =>
-      isCellEmpty(state, idx)
-    );
-    state.possibleMoveIndices.splice(
+  if (!isJumping) {
+    const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
+    possibleMoveIndices.splice(
       0,
-      state.possibleMoveIndices.length,
+      possibleMoveIndices.length,
       ...emptyNeighbors
     );
   }
+  //possibleJumps.splice(0, possibleJumps.length, ...jumpMoves);
+  //possibleMoveIndices.push(...possibleJumps.map((jump) => jump.jumpToId));
 }
 
 /*
   selectPiece(cellIndex):
   Changes the data store's selected piece index to reflect piece clicked 
 */
-function selectPiece(state, cellIndex) {
-  state.selectedPieceIndex = cellIndex;
-  getLegalMoves(state, cellIndex);
+function selectPiece(cellIndex) {
+  selectedPieceIndex = cellIndex;
+  // const emptyNeighbors = getEmptyDiagonalNeighbors(cellIndex);
+  // possibleMoveIndices.splice(0, possibleMoveIndices.length, ...emptyNeighbors);
+  getLegalMoves(cellIndex);
 }
 
-function clearPossibleJumps(state) {
+function clearPossibleJumps() {
   console.log(`Clearing possible jumps...`);
-  Object.keys(state.possibleJumps).forEach(
-    (key) => delete state.possibleJumps[key]
-  );
+  Object.keys(possibleJumps).forEach((key) => delete possibleJumps[key]);
 }
 
-function unselectPiece(state) {
-  state.selectedPieceIndex = null;
-  state.possibleMoveIndices.length = 0;
-  clearPossibleJumps(state);
+function unselectPiece() {
+  selectedPieceIndex = null;
+  possibleMoveIndices.length = 0;
+  // clearPossibleJumps();
 }
 
-function checkForWinner(state) {
-  const boardString = state.boardValues.join(" ");
-  if (!boardString.includes(state.players[0])) {
-    state.winner = state.players[1];
-  } else if (!boardString.includes(state.players[1])) {
-    state.winner = state.players[0];
+function checkForWinner() {
+  const boardString = boardValues.join(" ");
+  if (!boardString.includes(players[0])) {
+    winner = players[1];
+  } else if (!boardString.includes(players[1])) {
+    winner = players[0];
   }
-  console.log(`Checking for winner....${state.winner}`);
+  console.log(`Checking for winner....${winner}`);
 }
 
-function checkForTie(state) {}
+function checkForTie() {}
 
-function switchPlayerTurn(state) {
-  state.turn =
-    state.turn === state.players[0] ? state.players[1] : state.players[0];
+function switchPlayerTurn() {
+  turn = turn === players[0] ? players[1] : players[0];
 }
 
-initialize(state);
+initialize();
 
 /*===========================EVENT LISTENERS=======================*/
 
 function handleClick(event) {
-  if (state.winner) return;
+  if (winner) return;
   const el = event.currentTarget;
   const cellIndex = el.id * 1;
   const cell = boardCells[cellIndex];
-  const isPiece = hasPiece(state, cellIndex);
-  const cellValue = state.boardValues[cellIndex];
-  const isTurn = cellValue && state.turn === cellValue.split("_")[0];
+  const isPiece = hasPiece(cellIndex);
+  const cellValue = boardValues[cellIndex];
+  const isTurn = cellValue && turn === cellValue.split("_")[0];
 
   console.log(`Board clicked at cell ${cellIndex}.
      isPiece: ${isPiece}
      cellValue: ${cellValue}`);
   if (isPiece && isTurn) {
-    unselectPiece(state);
-    selectPiece(state, cellIndex);
-  } else if (state.possibleMoveIndices.includes(cellIndex)) {
+    unselectPiece();
+    selectPiece(cellIndex);
+  } else if (possibleMoveIndices.includes(cellIndex)) {
     console.log(
-      `Clicked in empty square ${cellIndex}; moving ${state.selectedPieceIndex} to ${cellIndex}`
+      `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex}`
     );
-    basicMove(state, state.selectedPieceIndex, cellIndex);
-  } else if (cellIndex in state.possibleJumps) {
-    const jump = state.possibleJumps[cellIndex];
+    basicMove(selectedPieceIndex, cellIndex);
+  } else if (cellIndex in possibleJumps) {
+    const jump = possibleJumps[cellIndex];
     console.log(
-      `Clicked in empty square ${cellIndex}; moving ${state.selectedPieceIndex} to ${cellIndex} and capturing ${jump.captureCellId}`
+      `Clicked in empty square ${cellIndex}; moving ${selectedPieceIndex} to ${cellIndex} and capturing ${jump.captureCellId}`
     );
 
-    jumpMove(state, jump);
+    jumpMove(jump);
   }
-  render(state);
+  render();
 }
 
 document.querySelectorAll("#game div.cell").forEach((cell) => {
   cell.addEventListener("click", handleClick);
 });
 
-document
-  .querySelector("#reset")
-  .addEventListener("click", () => initialize(state));
+document.querySelector("#reset").addEventListener("click", initialize);
 
 /*=================TEST FUNCTIONS======*/
 
-function clearPlayerPieces(state, playerIdx = 0) {
-  state.boardValues.forEach((val, i) => {
-    if (val.includes(state.players[playerIdx])) state.boardValues[i] = "";
+function clearPlayerPieces(playerIdx = 0) {
+  boardValues.forEach((val, i) => {
+    if (val.includes(players[playerIdx])) boardValues[i] = "";
   });
-  checkForWinner(state);
-  checkForTie(state);
-  render(state);
+  checkForWinner();
+  checkForTie();
+  render();
 }
