@@ -9,12 +9,6 @@ const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
 
 /*===========================VARIABLES=======================*/
-let turn = players[0];
-let selectedPieceIndex = null;
-let winner = false;
-let isTie = false;
-let isJumping = false;
-let forcedCaptures = false;
 
 const state = {
   // boardValues,
@@ -86,7 +80,7 @@ function getValidMoveRows(state, cellId) {
   const [player, pieceType] = cellValue.split("_");
   const [nextRowIdx, prevRowIdx] = [rowIndex + 1, rowIndex - 1];
   const idxs = [];
-  console.log(player, pieceType, rowIndex, nextRowIdx);
+  // console.log(player, pieceType, rowIndex, nextRowIdx);
   if (pieceType === "King") {
     if (nextRowIdx <= 7) idxs.push(nextRowIdx);
     if (prevRowIdx >= 0) idxs.push(prevRowIdx);
@@ -124,6 +118,7 @@ function initialize(state) {
   state.selectedPieceIndex = null;
   state.possibleMoveIndices = [];
   state.possibleJumps = {};
+  state.legalMoves = [];
   state.boardValues = [];
   state.players = ["White", "Black"];
   state.pieceTypes = ["Regular", "King"];
@@ -156,6 +151,7 @@ function initialize(state) {
       // playableIndices.push(i);
     }
   }
+  updateLegalMoves(state);
   render(state);
 }
 
@@ -265,82 +261,82 @@ function basicMove(state, fromIdx, toIdx) {
   checkForTie(state);
 }
 
-function jumpMove(state, jump) {
-  console.log(`Called jumpMove(${jump.originId}, ${jump.jumpToId})`);
+function jumpMove(state, move) {
+  console.log(`Called jumpMove(${move.from}, ${move.to})`);
   state.isJumping = true;
+  movePiece(state, move.from, move.to);
+  move.captures.forEach((captureIdx) => removePiece(state, captureIdx));
+  updateLegalMoves(state, move.to);
 
-  movePiece(state, jump.originId, jump.jumpToId);
-  removePiece(state, jump.captureCellId);
-  unselectPiece(state);
-  selectPiece(state, jump.jumpToId);
+  if (state.legalMoves.length > 0) {
+    state.selectedPieceIndex = move.to;
+    state.possibleMoveIndices = [];
+    state.possibleJumps = {};
+    state.legalMoves.forEach((jumpMove) => {
+      state.possibleJumps[jumpMove.to] = jumpMove;
+    });
+    return;
+  }
 
-  // Before resolving the jump and switching player turn, let's check if there are any other jumps available
-
-  if (Object.keys(state.possibleJumps).length !== 0) return;
   state.isJumping = false;
   switchPlayerTurn(state);
   unselectPiece(state);
-  clearPossibleJumps(state);
   checkForWinner(state);
   checkForTie(state);
 }
 
-function getJumpMoves(state, index) {
-  const neighbors = getValidNeighbors(state, index);
-  const originCoords = [getRowIndex(index), getColIndex(index)];
-  const [rowIdx, colIdx] = originCoords;
-  const originId = index;
-  const jumps = neighbors
-    .map((captureCellId) => {
-      const [neighborRowIdx, neighborColIdx] = [
-        getRowIndex(captureCellId),
-        getColIndex(captureCellId),
-      ];
-      const [rowDiff, colDiff] = [
-        neighborRowIdx - rowIdx,
-        neighborColIdx - colIdx,
-      ];
-      const jumpCoords = [rowIdx + rowDiff * 2, colIdx + colDiff * 2];
-      const jumpToId = getCellIndex(...jumpCoords);
-      // console.log(rowDiff, colDiff);
-      return {
-        originId,
-        originCoords,
-        jumpCoords,
-        captureCellId,
-        jumpToId,
-      };
-    })
-    .filter((jump) => {
-      return (
-        isCellEnemy(state, jump.captureCellId) &&
-        jump.jumpToId !== false &&
-        isCellEmpty(state, jump.jumpToId)
-      );
-    });
-  clearPossibleJumps(state);
-  jumps.forEach((jump) => {
-    state.possibleJumps[jump.jumpToId] = jump;
-  });
-}
+function updateLegalMoves(state, activeCellIdx = null) {
+  const player = state.turn;
+  const moves = [];
+  const cellIndices =
+    activeCellIdx === null
+      ? state.boardValues.map((val, idx) => idx)
+      : [activeCellIdx];
+  for (const cellIndex of cellIndices) {
+    const cellValue = state.boardValues[cellIndex];
+    if (!cellValue.includes(player)) continue;
 
-// Needs integration with getEmptyDiagonalNeighbors + later with jumps and double-jumps
-function getLegalMoves(state, cellIndex) {
-  const rowIndex = getRowIndex(cellIndex);
-  const cell = boardCells[cellIndex];
-  getJumpMoves(state, cellIndex);
-  if (Object.keys(state.possibleJumps).length !== 0 && state.forcedCaptures)
-    state.isJumping = true;
+    const validNeighbors = getValidNeighbors(state, cellIndex);
+    const [row, col] = [getRowIndex(cellIndex), getColIndex(cellIndex)];
 
-  if (!state.isJumping) {
-    const emptyNeighbors = getValidNeighbors(state, cellIndex).filter((idx) =>
-      isCellEmpty(state, idx)
-    );
-    state.possibleMoveIndices.splice(
-      0,
-      state.possibleMoveIndices.length,
-      ...emptyNeighbors
-    );
+    for (const neighbor of validNeighbors) {
+      if (isCellEmpty(state, neighbor)) {
+        moves.push({
+          from: cellIndex,
+          to: neighbor,
+          captures: [],
+          type: "regular",
+        });
+      } else if (isCellEnemy(state, neighbor)) {
+        const [landingRow, landingCol] = [
+          getRowIndex(neighbor),
+          getColIndex(neighbor),
+        ];
+        const [rowDiff, colDiff] = [landingRow - row, landingCol - col];
+        const jumpCoords = [row + rowDiff * 2, col + colDiff * 2];
+        const jumpToId = getCellIndex(...jumpCoords);
+        if (isCellEmpty(state, jumpToId)) {
+          moves.push({
+            from: cellIndex,
+            to: jumpToId,
+            captures: [neighbor],
+            type: "jump",
+          });
+        }
+      }
+    }
+  }
+  const hasJump = moves.some((move) => move.type === "jump");
+  const { isJumping, forcedCaptures } = state;
+  // If we're forcing captures and there is a jump available
+  // Then return only moves of type jump
+  console.log(`We're jumping: current piece ${state.selectedPieceIndex}`);
+  if (isJumping || (forcedCaptures && hasJump)) {
+    state.legalMoves = moves.filter((move) => move.type === "jump");
+  }
+  // Otherwise, return all moves found
+  else {
+    state.legalMoves = moves;
   }
 }
 
@@ -349,21 +345,25 @@ function getLegalMoves(state, cellIndex) {
   Changes the data store's selected piece index to reflect piece clicked 
 */
 function selectPiece(state, cellIndex) {
+  console.log(`Selecting piece ${cellIndex}...`);
   state.selectedPieceIndex = cellIndex;
-  getLegalMoves(state, cellIndex);
-}
+  state.possibleMoveIndices = state.legalMoves
+    .filter((m) => m.type === "regular" && m.from === cellIndex)
+    .map((m) => m.to);
 
-function clearPossibleJumps(state) {
-  console.log(`Clearing possible jumps...`);
-  Object.keys(state.possibleJumps).forEach(
-    (key) => delete state.possibleJumps[key]
-  );
+  state.possibleJumps = {};
+  state.legalMoves
+    .filter((m) => m.type === "jump" && m.from === cellIndex)
+    .forEach((move) => {
+      state.possibleJumps[move.to] = move;
+    });
 }
 
 function unselectPiece(state) {
   state.selectedPieceIndex = null;
-  state.possibleMoveIndices.length = 0;
-  clearPossibleJumps(state);
+  state.possibleMoveIndices = [];
+  state.possibleJumps = {};
+  // state.legalMoves = [];
 }
 
 function checkForWinner(state) {
@@ -381,6 +381,7 @@ function checkForTie(state) {}
 function switchPlayerTurn(state) {
   state.turn =
     state.turn === state.players[0] ? state.players[1] : state.players[0];
+  updateLegalMoves(state);
 }
 
 initialize(state);
@@ -402,18 +403,25 @@ function handleClick(event) {
   if (isPiece && isTurn) {
     unselectPiece(state);
     selectPiece(state, cellIndex);
-  } else if (state.possibleMoveIndices.includes(cellIndex)) {
-    console.log(
-      `Clicked in empty square ${cellIndex}; moving ${state.selectedPieceIndex} to ${cellIndex}`
-    );
-    basicMove(state, state.selectedPieceIndex, cellIndex);
-  } else if (cellIndex in state.possibleJumps) {
-    const jump = state.possibleJumps[cellIndex];
-    console.log(
-      `Clicked in empty square ${cellIndex}; moving ${state.selectedPieceIndex} to ${cellIndex} and capturing ${jump.captureCellId}`
+  } else {
+    // Find the move object that matches this click
+    const selectedMove = state.legalMoves.find(
+      (m) => m.from === state.selectedPieceIndex && m.to === cellIndex
     );
 
-    jumpMove(state, jump);
+    if (selectedMove) {
+      if (selectedMove.type === "regular") {
+        console.log(
+          `Regular move from ${selectedMove.from} to ${selectedMove.to}`
+        );
+        basicMove(state, selectedMove.from, selectedMove.to);
+      } else if (selectedMove.type === "jump") {
+        console.log(
+          `Jump from ${selectedMove.from} to ${selectedMove.to}, capturing ${selectedMove.captures}`
+        );
+        jumpMove(state, selectedMove);
+      }
+    }
   }
   render(state);
 }
