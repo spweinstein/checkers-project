@@ -25,6 +25,8 @@ const state = {
   // pieceTypes,
 };
 
+const ui = {};
+
 /*===========================GRID HELPER FUNCTIONS=======================*/
 
 function getRowIndex(cellId) {
@@ -116,9 +118,9 @@ function getValidNeighbors(state, cell) {
 function initialize(state) {
   state.winner = false;
   state.isTie = false;
-  state.selectedPieceIndex = null;
-  state.possibleMoveIndices = [];
-  state.possibleJumps = {};
+  ui.selectedPieceIndex = null;
+  ui.possibleMoveIndices = [];
+  ui.possibleJumps = {};
   state.legalMoves = [];
   state.boardValues = [];
   state.players = ["White", "Black"];
@@ -193,14 +195,11 @@ function render(state) {
 
     // check if cell is selected
     // if so, update class to reflect this
-    if (index === state.selectedPieceIndex) cell.classList.add("selected");
+    if (index === ui.selectedPieceIndex) cell.classList.add("selected");
     else cell.classList.remove("selected");
     // check if cell is a possible mvoe
     // if so, update class to reflect this
-    if (
-      state.possibleMoveIndices.includes(index) ||
-      index in state.possibleJumps
-    )
+    if (ui.possibleMoveIndices.includes(index) || index in ui.possibleJumps)
       cell.classList.add("possible-move");
     else cell.classList.remove("possible-move");
 
@@ -354,7 +353,7 @@ function updateLegalMoves(state, activeCellIdx = null) {
   const { isJumping, forcedCaptures } = state;
   // If we're forcing captures and there is a jump available
   // Then return only moves of type jump
-  console.log(`We're jumping: current piece ${state.selectedPieceIndex}`);
+  console.log(`We're jumping: current piece ${ui.selectedPieceIndex}`);
   if (isJumping || (forcedCaptures && hasJump)) {
     state.legalMoves = moves.filter((move) => move.type === "jump");
   }
@@ -385,28 +384,28 @@ function updateLegalMoves(state, activeCellIdx = null) {
 
 // Updated to use dfs
 function selectPiece(state, cellIndex) {
-  state.selectedPieceIndex = cellIndex;
+  ui.selectedPieceIndex = cellIndex;
 
   // Filter moves that start from this cell
   const pieceMoves = state.legalMoves.filter((m) => m.path[0] === cellIndex);
 
   // Separate for UI rendering
-  state.possibleMoveIndices = pieceMoves
+  ui.possibleMoveIndices = pieceMoves
     .filter((m) => m.type === "regular")
     .map((m) => m.path[m.path.length - 1]);
 
-  state.possibleJumps = {};
+  ui.possibleJumps = {};
   pieceMoves
     .filter((m) => m.type === "jump")
     .forEach((move) => {
-      state.possibleJumps[move.path[move.path.length - 1]] = move;
+      ui.possibleJumps[move.path[move.path.length - 1]] = move;
     });
 }
 
 function unselectPiece(state) {
-  state.selectedPieceIndex = null;
-  state.possibleMoveIndices = [];
-  state.possibleJumps = {};
+  ui.selectedPieceIndex = null;
+  ui.possibleMoveIndices = [];
+  ui.possibleJumps = {};
   // state.legalMoves = [];
 }
 
@@ -490,7 +489,7 @@ function handleClick(event) {
     // Find the move object that matches this click
     const selectedMove = state.legalMoves.find(
       (m) =>
-        m.path[0] === state.selectedPieceIndex &&
+        m.path[0] === ui.selectedPieceIndex &&
         m.path[m.path.length - 1] === cellIndex
     );
 
