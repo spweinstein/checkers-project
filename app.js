@@ -151,7 +151,8 @@ function initialize(state) {
       // playableIndices.push(i);
     }
   }
-  updateLegalMoves(state);
+  // updateLegalMoves(state);
+  state.legalMoves = generateAllLegalMoves(state);
   render(state);
 }
 
@@ -261,28 +262,50 @@ function basicMove(state, fromIdx, toIdx) {
   checkForTie(state);
 }
 
-function jumpMove(state, move) {
-  console.log(`Called jumpMove(${move.from}, ${move.to})`);
-  state.isJumping = true;
-  movePiece(state, move.from, move.to);
-  move.captures.forEach((captureIdx) => removePiece(state, captureIdx));
-  updateLegalMoves(state, move.to);
+// function jumpMove(state, move) {
+//   console.log(`Called jumpMove(${move.from}, ${move.to})`);
+//   state.isJumping = true;
+//   movePiece(state, move.from, move.to);
+//   move.captures.forEach((captureIdx) => removePiece(state, captureIdx));
+//   updateLegalMoves(state, move.to);
 
-  if (state.legalMoves.length > 0) {
-    state.selectedPieceIndex = move.to;
-    state.possibleMoveIndices = [];
-    state.possibleJumps = {};
-    state.legalMoves.forEach((jumpMove) => {
-      state.possibleJumps[jumpMove.to] = jumpMove;
-    });
-    return;
+//   if (state.legalMoves.length > 0) {
+//     state.selectedPieceIndex = move.to;
+//     state.possibleMoveIndices = [];
+//     state.possibleJumps = {};
+//     state.legalMoves.forEach((jumpMove) => {
+//       state.possibleJumps[jumpMove.to] = jumpMove;
+//     });
+//     return;
+//   }
+
+//   state.isJumping = false;
+//   switchPlayerTurn(state);
+//   unselectPiece(state);
+//   checkForWinner(state);
+//   checkForTie(state);
+// }
+
+function executeMove(state, move) {
+  // Apply full path
+  const startPos = move.path[0];
+  const endPos = move.path[move.path.length - 1];
+
+  const [player, pieceType] = removePiece(state, startPos).split("_");
+  addPiece(state, endPos, player, pieceType);
+
+  // Remove all captures
+  move.captures.forEach((idx) => removePiece(state, idx));
+
+  // Crown if reached end
+  if (isInLastRow(state, endPos)) {
+    crownPiece(state, endPos);
   }
 
-  state.isJumping = false;
+  // Clean up and switch turn
   switchPlayerTurn(state);
   unselectPiece(state);
   checkForWinner(state);
-  checkForTie(state);
 }
 
 function updateLegalMoves(state, activeCellIdx = null) {
@@ -344,18 +367,38 @@ function updateLegalMoves(state, activeCellIdx = null) {
   selectPiece(cellIndex):
   Changes the data store's selected piece index to reflect piece clicked 
 */
+// function selectPiece(state, cellIndex) {
+//   console.log(`Selecting piece ${cellIndex}...`);
+//   state.selectedPieceIndex = cellIndex;
+//   state.possibleMoveIndices = state.legalMoves
+//     .filter((m) => m.type === "regular" && m.from === cellIndex)
+//     .map((m) => m.to);
+
+//   state.possibleJumps = {};
+//   state.legalMoves
+//     .filter((m) => m.type === "jump" && m.from === cellIndex)
+//     .forEach((move) => {
+//       state.possibleJumps[move.to] = move;
+//     });
+// }
+
+// Updated to use dfs
 function selectPiece(state, cellIndex) {
-  console.log(`Selecting piece ${cellIndex}...`);
   state.selectedPieceIndex = cellIndex;
-  state.possibleMoveIndices = state.legalMoves
-    .filter((m) => m.type === "regular" && m.from === cellIndex)
-    .map((m) => m.to);
+
+  // Filter moves that start from this cell
+  const pieceMoves = state.legalMoves.filter((m) => m.path[0] === cellIndex);
+
+  // Separate for UI rendering
+  state.possibleMoveIndices = pieceMoves
+    .filter((m) => m.type === "regular")
+    .map((m) => m.path[m.path.length - 1]);
 
   state.possibleJumps = {};
-  state.legalMoves
-    .filter((m) => m.type === "jump" && m.from === cellIndex)
+  pieceMoves
+    .filter((m) => m.type === "jump")
     .forEach((move) => {
-      state.possibleJumps[move.to] = move;
+      state.possibleJumps[move.path[move.path.length - 1]] = move;
     });
 }
 
@@ -381,18 +424,56 @@ function checkForTie(state) {}
 function switchPlayerTurn(state) {
   state.turn =
     state.turn === state.players[0] ? state.players[1] : state.players[0];
-  updateLegalMoves(state);
+  // updateLegalMoves(state);
+  state.legalMoves = generateAllLegalMoves(state);
 }
 
 initialize(state);
 
 /*===========================EVENT LISTENERS=======================*/
 
+// function handleClick(event) {
+//   if (state.winner) return;
+//   const el = event.currentTarget;
+//   const cellIndex = el.id * 1;
+//   const cell = boardCells[cellIndex];
+//   const isPiece = hasPiece(state, cellIndex);
+//   const cellValue = state.boardValues[cellIndex];
+//   const isTurn = cellValue && state.turn === cellValue.split("_")[0];
+
+//   console.log(`Board clicked at cell ${cellIndex}.
+//      isPiece: ${isPiece}
+//      cellValue: ${cellValue}`);
+//   if (isPiece && isTurn) {
+//     unselectPiece(state);
+//     selectPiece(state, cellIndex);
+//   } else {
+//     // Find the move object that matches this click
+//     const selectedMove = state.legalMoves.find(
+//       (m) => m.from === state.selectedPieceIndex && m.to === cellIndex
+//     );
+
+//     if (selectedMove) {
+//       if (selectedMove.type === "regular") {
+//         console.log(
+//           `Regular move from ${selectedMove.from} to ${selectedMove.to}`
+//         );
+//         basicMove(state, selectedMove.from, selectedMove.to);
+//       } else if (selectedMove.type === "jump") {
+//         console.log(
+//           `Jump from ${selectedMove.from} to ${selectedMove.to}, capturing ${selectedMove.captures}`
+//         );
+//         jumpMove(state, selectedMove);
+//       }
+//     }
+//   }
+//   render(state);
+// }
+
 function handleClick(event) {
   if (state.winner) return;
   const el = event.currentTarget;
   const cellIndex = el.id * 1;
-  const cell = boardCells[cellIndex];
   const isPiece = hasPiece(state, cellIndex);
   const cellValue = state.boardValues[cellIndex];
   const isTurn = cellValue && state.turn === cellValue.split("_")[0];
@@ -400,27 +481,29 @@ function handleClick(event) {
   console.log(`Board clicked at cell ${cellIndex}.
      isPiece: ${isPiece}
      cellValue: ${cellValue}`);
+
   if (isPiece && isTurn) {
     unselectPiece(state);
     selectPiece(state, cellIndex);
   } else {
     // Find the move object that matches this click
     const selectedMove = state.legalMoves.find(
-      (m) => m.from === state.selectedPieceIndex && m.to === cellIndex
+      (m) =>
+        m.path[0] === state.selectedPieceIndex &&
+        m.path[m.path.length - 1] === cellIndex
     );
 
     if (selectedMove) {
-      if (selectedMove.type === "regular") {
-        console.log(
-          `Regular move from ${selectedMove.from} to ${selectedMove.to}`
-        );
-        basicMove(state, selectedMove.from, selectedMove.to);
-      } else if (selectedMove.type === "jump") {
-        console.log(
-          `Jump from ${selectedMove.from} to ${selectedMove.to}, capturing ${selectedMove.captures}`
-        );
-        jumpMove(state, selectedMove);
-      }
+      console.log(
+        `Executing ${selectedMove.type} move: ${selectedMove.path.join(
+          " -> "
+        )}${
+          selectedMove.captures.length > 0
+            ? `, capturing ${selectedMove.captures}`
+            : ""
+        }`
+      );
+      executeMove(state, selectedMove);
     }
   }
   render(state);
@@ -488,25 +571,43 @@ function clearPlayerPieces(state, playerIdx = 0) {
 //   return moves;
 // }
 
-// Returns list of possible single jumps from square at index pos
+// Apply a complete move to the state
+// Takes the full path and all captures, returns new state
+function applyMove(state, move) {
+  const stateClone = structuredClone(state);
+  const startPos = move.path[0];
+  const endPos = move.path[move.path.length - 1];
 
+  // Move the piece from start to end
+  stateClone.boardValues[endPos] = stateClone.boardValues[startPos];
+  stateClone.boardValues[startPos] = "";
+
+  // Remove all captured pieces
+  move.captures.forEach((cell) => (stateClone.boardValues[cell] = ""));
+
+  return stateClone;
+}
+
+// Returns list of possible single jumps from square at index pos
 function findSingleJumps(state, pos) {
   const { boardValues, turn } = state;
   const moves = [];
-  // console.log(pos, boardValues[pos]);
   if (!boardValues[pos].startsWith(turn)) return moves;
+
   const neighbors = getValidNeighbors(state, pos);
   const [row, col] = [getRowIndex(pos), getColIndex(pos)];
+
   for (const neighbor of neighbors) {
     if (!isCellEnemy(state, neighbor)) continue;
+
     const [landingRow, landingCol] = [
       getRowIndex(neighbor),
       getColIndex(neighbor),
     ];
     const [rowDiff, colDiff] = [landingRow - row, landingCol - col];
     const jumpCoords = [row + rowDiff * 2, col + colDiff * 2];
-    // console.log(jumpCoords);
     const jumpToId = getCellIndex(...jumpCoords);
+
     if (jumpToId !== false && isCellEmpty(state, jumpToId)) {
       moves.push({
         path: [pos, jumpToId],
@@ -518,16 +619,12 @@ function findSingleJumps(state, pos) {
   return moves;
 }
 
-// Returns a list of modified
-
+// Returns continuation jumps from the current move
 function findContinuationJumps(state, move) {
-  const stateClone = structuredClone(state);
+  const stateClone = applyMove(state, move);
   const curPos = move.path[move.path.length - 1];
-  const lastPos = move.path[move.path.length - 2];
-  stateClone.boardValues[curPos] = stateClone.boardValues[lastPos];
-  stateClone.boardValues[lastPos] = "";
-  move.captures.forEach((cell) => (stateClone.boardValues[cell] = ""));
   const continuationJumps = findSingleJumps(stateClone, curPos);
+
   return continuationJumps.map((continuationJump) => {
     return {
       path: [
@@ -542,21 +639,11 @@ function findContinuationJumps(state, move) {
     };
   });
 }
-// Pseudocode for DFS:
 
-// jumpDFS(state, move, results):
-//   continuations = generateContinuationJumps(state, move)
-
-//   if continuations is empty:
-//     // no further jumps possible from the landing square
-//     add move to results
-//     return
-
-//   for each nextMove in continuations:
-//     jumpDFS(state, nextMove, results)
-
+// DFS to find all complete jump sequences
 function jumpDFS(state, move, results) {
   const continuations = findContinuationJumps(state, move);
+
   if (continuations.length === 0) {
     results.push(move);
     return results;
@@ -565,26 +652,50 @@ function jumpDFS(state, move, results) {
   for (const nextMove of continuations) {
     jumpDFS(state, nextMove, results);
   }
+
+  return results;
 }
 
-// findAllPaths(state):
-//   results = []
-
-//   for each pieceIndex that belongs to state.turn:
-//     firstJumps = generateSingleJumps(state, pieceIndex)
-
-//     for each jumpMove in firstJumps:
-//       jumpDFS(state, jumpMove, results)
-
-//   return results
-
+// Find all possible jump paths for the current player
 function findAllJumpPaths(state) {
   const results = [];
+
   state.boardValues.forEach((cellValue, cellIndex) => {
     const jumps = findSingleJumps(state, cellIndex);
-    jumps.forEach((jump, idx) => {
+    jumps.forEach((jump) => {
       jumpDFS(state, jump, results);
     });
   });
+
   return results;
+}
+
+function generateAllLegalMoves(state) {
+  const regularMoves = [];
+  const jumpPaths = findAllJumpPaths(state);
+
+  // Only generate regular moves if no jumps available (forced capture rule)
+  if (jumpPaths.length === 0 || !state.forcedCaptures) {
+    state.boardValues.forEach((cellValue, cellIndex) => {
+      if (!cellValue.startsWith(state.turn)) return;
+
+      const neighbors = getValidNeighbors(state, cellIndex);
+      neighbors.forEach((neighbor) => {
+        if (isCellEmpty(state, neighbor)) {
+          regularMoves.push({
+            path: [cellIndex, neighbor],
+            captures: [],
+            type: "regular",
+          });
+        }
+      });
+    });
+  }
+
+  // If forced captures and jumps exist, return only jumps
+  if (state.forcedCaptures && jumpPaths.length > 0) {
+    return jumpPaths;
+  }
+
+  return [...regularMoves, ...jumpPaths];
 }
