@@ -125,8 +125,10 @@ div.game {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  width: 70vh;
-  height: 70vh;
+  width: min(70vh, 90vw);
+  max-width: 100%;
+  max-height: 70vh;
+  aspect-ratio: 1;
   border: 5px solid black;
 }
 
