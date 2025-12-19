@@ -125,7 +125,7 @@ function movePiece(state, fromIdx, toIdx) {
   }
 }
 
-function executeMove(state, ui, move) {
+function executeMove(state, ui, move, unselectFn) {
   // Apply full path
   const startPos = move.path[0];
   const endPos = move.path[move.path.length - 1];
@@ -143,7 +143,7 @@ function executeMove(state, ui, move) {
 
   // Clean up and switch turn
   switchPlayerTurn(state);
-  unselectPiece(state, ui);
+  unselectFn(state, ui);
   checkForWinner(state);
 }
 
@@ -327,3 +327,35 @@ function initializeGame(state) {
   // updateLegalMoves(state);
   state.legalMoves = generateAllLegalMoves(state);
 }
+
+export {
+  players,
+  pieceTypes,
+  getRowIndex,
+  getColIndex,
+  getCellIndex,
+  getCellValue,
+  isCellEmpty,
+  isCellEnemy,
+  isInLastRow,
+  isOnBoard,
+  getValidMoveRows,
+  getValidMoveCols,
+  getValidNeighbors,
+  addPiece,
+  hasPiece,
+  removePiece,
+  crownPiece,
+  movePiece,
+  executeMove,
+  checkForWinner,
+  checkForTie,
+  switchPlayerTurn,
+  applyMove,
+  findSingleJumps,
+  findContinuationJumps,
+  jumpDFS,
+  findAllJumpPaths,
+  generateAllLegalMoves,
+  initializeGame,
+};

@@ -1,3 +1,16 @@
+/*===========================UI IMPORTS=======================*/
+
+import {
+  getRowIndex,
+  hasPiece,
+  movePiece,
+  removePiece,
+  executeMove,
+  checkForWinner,
+  checkForTie,
+  switchPlayerTurn,
+} from "./game.js";
+
 /*===========================UI CONSTANTS=======================*/
 
 const boardCells = document.querySelectorAll("div.game > div.cell");
@@ -173,7 +186,7 @@ function handleRegularClick(state, ui, cellIndex) {
     );
     if (selectedMove) {
       console.log(`Executing regular move: ${selectedMove.path.join(" -> ")}`);
-      executeMove(state, ui, selectedMove);
+      executeMove(state, ui, selectedMove, unselectPiece);
       return true;
     }
   }
@@ -326,14 +339,14 @@ function handleClick(state, ui, event) {
 
 /*===========================EVENT LISTENER SETUP=======================*/
 
-function setupEventListeners(state, ui) {
+function setupEventListeners(state, ui, initializeFn) {
   document.querySelectorAll("#game div.cell").forEach((cell) => {
     cell.addEventListener("click", (event) => handleClick(state, ui, event));
   });
 
   document
     .querySelector("#reset")
-    .addEventListener("click", () => initialize(state, ui));
+    .addEventListener("click", () => initializeFn(state, ui));
 }
 
 /*===========================TEST HELPERS=======================*/
@@ -346,3 +359,18 @@ function clearPlayerPieces(state, playerIdx = 0) {
   checkForTie(state);
   render(state);
 }
+
+export {
+  initializeUI,
+  updateMessage,
+  render,
+  selectPiece,
+  unselectPiece,
+  handleRegularClick,
+  handleStartJumpSeq,
+  handleContinueJumpSeq,
+  handleEndJumpSeq,
+  handleClick,
+  setupEventListeners,
+  clearPlayerPieces,
+};
