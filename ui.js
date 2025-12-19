@@ -79,7 +79,7 @@ function render(state, ui) {
     // if so, update class to reflect this
     if (index === ui.selectedPieceIndex) cell.classList.add("selected");
     else cell.classList.remove("selected");
-    // check if cell is a possible mvoe
+    // check if cell is a possible move
     // if so, update class to reflect this
     if (ui.possibleMoveIndices.includes(index) || index in ui.possibleJumps)
       cell.classList.add("possible-move");
@@ -351,13 +351,13 @@ function setupEventListeners(state, ui, initializeFn) {
 
 /*===========================TEST HELPERS=======================*/
 
-function clearPlayerPieces(state, playerIdx = 0) {
+function clearPlayerPieces(state, ui, playerIdx = 0) {
   state.boardValues.forEach((val, i) => {
     if (val.includes(state.players[playerIdx])) state.boardValues[i] = "";
   });
   checkForWinner(state);
   checkForTie(state);
-  render(state);
+  render(state, ui);
 }
 
 export {
