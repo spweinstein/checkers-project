@@ -29,7 +29,7 @@ function initializeUI(state, ui) {
   ui.captureStart = null;
   ui.captureCursor = 0;
   ui.activeJumpSequences = [];
-  ui.aiEnabled = false;
+  ui.aiEnabled = true;
   ui.aiPlayer = 'Black';
   ui.aiDifficulty = 'medium';
   for (let i = 0; i < 64; i++) {
