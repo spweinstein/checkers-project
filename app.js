@@ -2,28 +2,15 @@
 
 const players = ["White", "Black"];
 const pieceTypes = ["Regular", "King"];
-const boardValues = [];
-const possibleMoveIndices = [];
-const possibleJumps = {};
+// const boardValues = [];
+// const possibleMoveIndices = [];
+// const possibleJumps = {};
 const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
 
 /*===========================VARIABLES=======================*/
 
-const state = {
-  // boardValues,
-  // boardCells,
-  // turn,
-  // winner,
-  // isTie,
-  // isJumping,
-  // forcedCaptures,
-  // selectedPieceIndex,
-  // possibleMoveIndices,
-  // possibleJumps,
-  // players,
-  // pieceTypes,
-};
+const state = {};
 
 const ui = {};
 
@@ -149,39 +136,6 @@ function movePiece(state, fromIdx, toIdx) {
   }
 }
 
-function basicMove(state, fromIdx, toIdx) {
-  console.log(`Called basicMove(${fromIdx}, ${toIdx})`);
-  movePiece(state, fromIdx, toIdx);
-  switchPlayerTurn(state);
-  unselectPiece(state);
-  checkForWinner(state);
-  checkForTie(state);
-}
-
-// function jumpMove(state, move) {
-//   console.log(`Called jumpMove(${move.from}, ${move.to})`);
-//   state.isJumping = true;
-//   movePiece(state, move.from, move.to);
-//   move.captures.forEach((captureIdx) => removePiece(state, captureIdx));
-//   updateLegalMoves(state, move.to);
-
-//   if (state.legalMoves.length > 0) {
-//     state.selectedPieceIndex = move.to;
-//     state.possibleMoveIndices = [];
-//     state.possibleJumps = {};
-//     state.legalMoves.forEach((jumpMove) => {
-//       state.possibleJumps[jumpMove.to] = jumpMove;
-//     });
-//     return;
-//   }
-
-//   state.isJumping = false;
-//   switchPlayerTurn(state);
-//   unselectPiece(state);
-//   checkForWinner(state);
-//   checkForTie(state);
-// }
-
 function executeMove(state, move) {
   // Apply full path
   const startPos = move.path[0];
@@ -202,61 +156,6 @@ function executeMove(state, move) {
   switchPlayerTurn(state);
   unselectPiece(state);
   checkForWinner(state);
-}
-
-function updateLegalMoves(state, activeCellIdx = null) {
-  const player = state.turn;
-  const moves = [];
-  const cellIndices =
-    activeCellIdx === null
-      ? state.boardValues.map((val, idx) => idx)
-      : [activeCellIdx];
-  for (const cellIndex of cellIndices) {
-    const cellValue = state.boardValues[cellIndex];
-    if (!cellValue.includes(player)) continue;
-
-    const validNeighbors = getValidNeighbors(state, cellIndex);
-    const [row, col] = [getRowIndex(cellIndex), getColIndex(cellIndex)];
-
-    for (const neighbor of validNeighbors) {
-      if (isCellEmpty(state, neighbor)) {
-        moves.push({
-          from: cellIndex,
-          to: neighbor,
-          captures: [],
-          type: "regular",
-        });
-      } else if (isCellEnemy(state, neighbor)) {
-        const [landingRow, landingCol] = [
-          getRowIndex(neighbor),
-          getColIndex(neighbor),
-        ];
-        const [rowDiff, colDiff] = [landingRow - row, landingCol - col];
-        const jumpCoords = [row + rowDiff * 2, col + colDiff * 2];
-        const jumpToId = getCellIndex(...jumpCoords);
-        if (isCellEmpty(state, jumpToId)) {
-          moves.push({
-            from: cellIndex,
-            to: jumpToId,
-            captures: [neighbor],
-            type: "jump",
-          });
-        }
-      }
-    }
-  }
-  const hasJump = moves.some((move) => move.type === "jump");
-  const { isJumping, forcedCaptures } = state;
-  // If we're forcing captures and there is a jump available
-  // Then return only moves of type jump
-  console.log(`We're jumping: current piece ${ui.selectedPieceIndex}`);
-  if (isJumping || (forcedCaptures && hasJump)) {
-    state.legalMoves = moves.filter((move) => move.type === "jump");
-  }
-  // Otherwise, return all moves found
-  else {
-    state.legalMoves = moves;
-  }
 }
 
 function checkForWinner(state) {
@@ -410,9 +309,6 @@ function generateAllLegalMoves(state) {
 function initializeGame(state) {
   state.winner = false;
   state.isTie = false;
-  ui.selectedPieceIndex = null;
-  ui.possibleMoveIndices = [];
-  ui.possibleJumps = {};
   state.legalMoves = [];
   state.boardValues = [];
   state.players = ["White", "Black"];
@@ -445,7 +341,15 @@ function initializeGame(state) {
   state.legalMoves = generateAllLegalMoves(state);
 }
 
-function initializeUI(state) {
+function initializeUI(state, ui) {
+  ui.selectedPieceIndex = null;
+  ui.possibleMoveIndices = [];
+  ui.possibleJumps = {};
+  ui.isCapturing = false;
+  ui.capturePos = null;
+  ui.captureStart = null;
+  ui.captureCursor = 0;
+  ui.activeJumpSequences = [];
   for (let i = 0; i < 64; i++) {
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
@@ -460,10 +364,10 @@ function initializeUI(state) {
   }
 }
 
-function initialize(state) {
+function initialize(state, ui) {
   initializeGame(state);
-  initializeUI(state);
-  render(state);
+  initializeUI(state, ui);
+  render(state, ui);
 }
 
 /*===========================UI=======================*/
@@ -472,7 +376,7 @@ function updateMessage(msg) {
   msgCell.textContent = msg;
 }
 
-function render(state) {
+function render(state, ui) {
   console.log("Rendering...");
   boardCells.forEach((cell, index) => {
     const cellValue = state.boardValues[index];
@@ -524,29 +428,33 @@ function render(state) {
     );
   else updateMessage(`It is player ${state.turn}'s turn`);
 }
-
-/*
-  selectPiece(cellIndex):
-  Changes the data store's selected piece index to reflect piece clicked 
-*/
-// function selectPiece(state, cellIndex) {
-//   console.log(`Selecting piece ${cellIndex}...`);
-//   state.selectedPieceIndex = cellIndex;
-//   state.possibleMoveIndices = state.legalMoves
-//     .filter((m) => m.type === "regular" && m.from === cellIndex)
-//     .map((m) => m.to);
-
-//   state.possibleJumps = {};
-//   state.legalMoves
-//     .filter((m) => m.type === "jump" && m.from === cellIndex)
-//     .forEach((move) => {
-//       state.possibleJumps[move.to] = move;
-//     });
-// }
-
 // Updated to use dfs
 function selectPiece(state, cellIndex) {
   ui.selectedPieceIndex = cellIndex;
+
+  // If in capture mode, only allow selecting the capturing piece
+  if (ui.isCapturing) {
+    if (cellIndex !== ui.capturePos) return;
+    ui.possibleMoveIndices = [];
+    ui.possibleJumps = {};
+
+    // Build next-hop options from activeJumpSequences
+    for (const seq of ui.activeJumpSequences) {
+      if (seq.path.length > ui.captureCursor) {
+        const nextLanding = seq.path[ui.captureCursor];
+        if (!ui.possibleJumps[nextLanding]) {
+          ui.possibleJumps[nextLanding] = [];
+        }
+        ui.possibleJumps[nextLanding].push(seq);
+      }
+    }
+
+    // If no more hops available, end capture sequence
+    if (Object.keys(ui.possibleJumps).length === 0) {
+      handleEndJumpSeq(state, ui);
+    }
+    return;
+  }
 
   // Filter moves that start from this cell
   const pieceMoves = state.legalMoves.filter((m) => m.path[0] === cellIndex);
@@ -556,11 +464,17 @@ function selectPiece(state, cellIndex) {
     .filter((m) => m.type === "regular")
     .map((m) => m.path[m.path.length - 1]);
 
+  // Build possibleJumps keyed by first-hop landing square (path[1])
+  // Store arrays to handle multiple sequences sharing the same first hop
   ui.possibleJumps = {};
   pieceMoves
     .filter((m) => m.type === "jump")
     .forEach((move) => {
-      ui.possibleJumps[move.path[move.path.length - 1]] = move;
+      const firstHop = move.path[1];
+      if (!ui.possibleJumps[firstHop]) {
+        ui.possibleJumps[firstHop] = [];
+      }
+      ui.possibleJumps[firstHop].push(move);
     });
 }
 
@@ -571,52 +485,11 @@ function unselectPiece(state) {
   // state.legalMoves = [];
 }
 
-initialize(state);
+initialize(state, ui);
 
 /*===========================EVENT LISTENERS=======================*/
 
-// function handleClick(event) {
-//   if (state.winner) return;
-//   const el = event.currentTarget;
-//   const cellIndex = el.id * 1;
-//   const cell = boardCells[cellIndex];
-//   const isPiece = hasPiece(state, cellIndex);
-//   const cellValue = state.boardValues[cellIndex];
-//   const isTurn = cellValue && state.turn === cellValue.split("_")[0];
-
-//   console.log(`Board clicked at cell ${cellIndex}.
-//      isPiece: ${isPiece}
-//      cellValue: ${cellValue}`);
-//   if (isPiece && isTurn) {
-//     unselectPiece(state);
-//     selectPiece(state, cellIndex);
-//   } else {
-//     // Find the move object that matches this click
-//     const selectedMove = state.legalMoves.find(
-//       (m) => m.from === state.selectedPieceIndex && m.to === cellIndex
-//     );
-
-//     if (selectedMove) {
-//       if (selectedMove.type === "regular") {
-//         console.log(
-//           `Regular move from ${selectedMove.from} to ${selectedMove.to}`
-//         );
-//         basicMove(state, selectedMove.from, selectedMove.to);
-//       } else if (selectedMove.type === "jump") {
-//         console.log(
-//           `Jump from ${selectedMove.from} to ${selectedMove.to}, capturing ${selectedMove.captures}`
-//         );
-//         jumpMove(state, selectedMove);
-//       }
-//     }
-//   }
-//   render(state);
-// }
-
-function handleClick(event) {
-  if (state.winner) return;
-  const el = event.currentTarget;
-  const cellIndex = el.id * 1;
+function handleRegularClick(state, ui, cellIndex) {
   const isPiece = hasPiece(state, cellIndex);
   const cellValue = state.boardValues[cellIndex];
   const isTurn = cellValue && state.turn === cellValue.split("_")[0];
@@ -628,28 +501,168 @@ function handleClick(event) {
   if (isPiece && isTurn) {
     unselectPiece(state);
     selectPiece(state, cellIndex);
-  } else {
-    // Find the move object that matches this click
+    return true;
+  }
+
+  // Check if clicking a regular move destination
+  if (ui.possibleMoveIndices.includes(cellIndex)) {
     const selectedMove = state.legalMoves.find(
       (m) =>
         m.path[0] === ui.selectedPieceIndex &&
-        m.path[m.path.length - 1] === cellIndex
+        m.path[m.path.length - 1] === cellIndex &&
+        m.type === "regular"
     );
-
     if (selectedMove) {
-      console.log(
-        `Executing ${selectedMove.type} move: ${selectedMove.path.join(
-          " -> "
-        )}${
-          selectedMove.captures.length > 0
-            ? `, capturing ${selectedMove.captures}`
-            : ""
-        }`
-      );
+      console.log(`Executing regular move: ${selectedMove.path.join(" -> ")}`);
       executeMove(state, selectedMove);
+      return true;
     }
   }
-  render(state);
+
+  // Check if clicking a jump destination (first hop)
+  if (cellIndex in ui.possibleJumps) {
+    handleStartJumpSeq(state, ui, cellIndex);
+    return true;
+  }
+
+  return false;
+}
+
+function handleStartJumpSeq(state, ui, cellIndex) {
+  // Get all sequences that start with this first hop
+  ui.activeJumpSequences = ui.possibleJumps[cellIndex];
+
+  if (!ui.activeJumpSequences || ui.activeJumpSequences.length === 0) return;
+
+  // Use first sequence to determine the hop details (all should agree on first hop)
+  const seq = ui.activeJumpSequences[0];
+  const from = seq.path[0];
+  const to = seq.path[1];
+  const captured = seq.captures[0];
+
+  console.log(
+    `Starting jump sequence: hop from ${from} to ${to}, capturing ${captured}`
+  );
+
+  // Apply first hop
+  movePiece(state, from, to);
+  removePiece(state, captured);
+  // if (isInLastRow(state, to)) {
+  //   crownPiece(state, to);
+  // }
+
+  // Enter capture mode
+  ui.isCapturing = true;
+  ui.capturePos = to;
+  ui.captureStart = from;
+  ui.selectedPieceIndex = to;
+  ui.captureCursor = 2; // Next hop would be at path[2]
+  ui.possibleMoveIndices = [];
+  ui.possibleJumps = {};
+
+  // Build next-hop options from remaining sequences
+  for (const s of ui.activeJumpSequences) {
+    if (s.path.length > ui.captureCursor) {
+      const nextLanding = s.path[ui.captureCursor];
+      if (!ui.possibleJumps[nextLanding]) {
+        ui.possibleJumps[nextLanding] = [];
+      }
+      ui.possibleJumps[nextLanding].push(s);
+    }
+  }
+
+  // If no more hops available, end sequence
+  if (Object.keys(ui.possibleJumps).length === 0) {
+    handleEndJumpSeq(state, ui);
+  }
+}
+
+function handleContinueJumpSeq(state, ui, cellIndex) {
+  // Narrow to sequences that match this hop
+  ui.activeJumpSequences = ui.possibleJumps[cellIndex];
+
+  if (!ui.activeJumpSequences || ui.activeJumpSequences.length === 0) return;
+
+  // Use first sequence to determine the hop details
+  const seq = ui.activeJumpSequences[0];
+  const from = ui.capturePos;
+  const to = cellIndex;
+  const captureIndex = ui.captureCursor - 1; // captureCursor tracks path index, captures are 0-indexed
+  const captured = seq.captures[captureIndex];
+
+  console.log(
+    `Continuing jump: hop from ${from} to ${to}, capturing ${captured}`
+  );
+
+  // Apply hop
+  movePiece(state, from, to);
+  removePiece(state, captured);
+  // if (isInLastRow(state, to)) {
+  //   crownPiece(state, to);
+  // }
+
+  // Update capture state
+  ui.capturePos = to;
+  ui.selectedPieceIndex = to;
+  ui.captureCursor++;
+  ui.possibleJumps = {};
+
+  // Build next-hop options from remaining sequences
+  for (const s of ui.activeJumpSequences) {
+    if (s.path.length > ui.captureCursor) {
+      const nextLanding = s.path[ui.captureCursor];
+      if (!ui.possibleJumps[nextLanding]) {
+        ui.possibleJumps[nextLanding] = [];
+      }
+      ui.possibleJumps[nextLanding].push(s);
+    }
+  }
+
+  // If no more hops available, end sequence
+  if (Object.keys(ui.possibleJumps).length === 0) {
+    handleEndJumpSeq(state, ui);
+  }
+}
+
+function handleEndJumpSeq(state, ui) {
+  console.log("Ending jump sequence");
+
+  // Clear capture state
+  ui.isCapturing = false;
+  ui.capturePos = null;
+  ui.captureStart = null;
+  ui.captureCursor = 0;
+  ui.activeJumpSequences = [];
+  unselectPiece(state);
+
+  // End turn
+  switchPlayerTurn(state);
+  checkForWinner(state);
+  checkForTie(state);
+}
+
+function handleClick(event) {
+  if (state.winner || state.isTie) return;
+
+  const el = event.currentTarget;
+  const cellIndex = el.id * 1;
+
+  let changed = false;
+
+  if (ui.isCapturing) {
+    // In capture mode: only process continuation jumps
+    if (cellIndex in ui.possibleJumps) {
+      handleContinueJumpSeq(state, ui, cellIndex);
+      changed = true;
+    }
+  } else {
+    // Normal mode: handle piece selection, regular moves, or jump starts
+    changed = handleRegularClick(state, ui, cellIndex);
+  }
+
+  if (changed) {
+    render(state, ui);
+  }
 }
 
 document.querySelectorAll("#game div.cell").forEach((cell) => {
@@ -658,7 +671,7 @@ document.querySelectorAll("#game div.cell").forEach((cell) => {
 
 document
   .querySelector("#reset")
-  .addEventListener("click", () => initialize(state));
+  .addEventListener("click", () => initialize(state, ui));
 
 /*===========================TEST HELPERS=======================*/
 
