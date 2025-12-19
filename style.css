@@ -95,7 +95,7 @@ header,
 footer {
   width: 100%;
   max-width: 70vh;
-  height: 10vh;
+  height: 15vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
