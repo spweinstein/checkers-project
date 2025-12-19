@@ -330,6 +330,11 @@ function checkAndExecuteAIMove(state, ui) {
     return;
   }
   
+  // Check if there are any legal moves available
+  if (!state.legalMoves || state.legalMoves.length === 0) {
+    return;
+  }
+  
   // Add small delay for better UX
   setTimeout(() => {
     const aiMove = getAIMove(state, ui.aiDifficulty);
