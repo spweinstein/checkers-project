@@ -17,6 +17,11 @@ import { getAIMove } from "./ai.js";
 
 const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
+const statusIndicator = document.querySelector("#status-indicator");
+const startGameBtn = document.querySelector("#start-game");
+const resetBtn = document.querySelector("#reset");
+const aiDifficultySelect = document.querySelector("#ai-difficulty");
+const aiPlayerSelect = document.querySelector("#ai-player");
 
 /*===========================UI INITIALIZATION=======================*/
 
@@ -47,6 +52,44 @@ function initializeUI(state, ui) {
 }
 
 /*===========================UI RENDERING=======================*/
+
+function updateStatusIndicator(state) {
+  if (!state.isGameStarted) {
+    statusIndicator.textContent = "Set your preferences and click 'Start Game' to begin.";
+  } else if (state.winner || state.isTie) {
+    statusIndicator.textContent = "Set your preferences and click 'Start Game' to begin.";
+  } else {
+    statusIndicator.textContent = "Game in progress! Play your move or click 'Reset' to restart.";
+  }
+}
+
+function updateControlStates(state) {
+  if (!state.isGameStarted) {
+    // Pre-game state
+    startGameBtn.disabled = false;
+    resetBtn.disabled = true;
+    aiDifficultySelect.disabled = false;
+    aiPlayerSelect.disabled = false;
+    
+    // Update tooltips
+    startGameBtn.title = "Click to start a new game";
+    resetBtn.title = "Disabled - game has not started";
+    aiDifficultySelect.title = "Select AI difficulty level";
+    aiPlayerSelect.title = "Choose which color the AI plays";
+  } else {
+    // Game-in-play state
+    startGameBtn.disabled = true;
+    resetBtn.disabled = false;
+    aiDifficultySelect.disabled = true;
+    aiPlayerSelect.disabled = true;
+    
+    // Update tooltips
+    startGameBtn.title = "Disabled - game is in progress";
+    resetBtn.title = "Reset the current game";
+    aiDifficultySelect.title = "Disabled while the game is in progress";
+    aiPlayerSelect.title = "Disabled while the game is in progress";
+  }
+}
 
 function updateMessage(msg) {
   msgCell.textContent = msg;
@@ -102,7 +145,13 @@ function render(state, ui) {
     updateMessage(
       `Congratulations, player ${state.winner}! Hit reset to play again.`
     );
-  else updateMessage(`It is player ${state.turn}'s turn`);
+  else if (state.isGameStarted)
+    updateMessage(`It is player ${state.turn}'s turn`);
+  else
+    updateMessage("");
+  
+  updateStatusIndicator(state);
+  updateControlStates(state);
 }
 
 /*===========================UI PIECE SELECTION=======================*/
@@ -351,7 +400,7 @@ function checkAndExecuteAIMove(state, ui) {
 }
 
 function handleClick(state, ui, event) {
-  if (state.winner || state.isTie) return;
+  if (state.winner || state.isTie || !state.isGameStarted) return;
 
   const el = event.currentTarget;
   const cellIndex = el.id * 1;
@@ -381,15 +430,24 @@ function setupEventListeners(state, ui, initializeFn) {
     cell.addEventListener("click", (event) => handleClick(state, ui, event));
   });
 
-  document
-    .querySelector("#reset")
-    .addEventListener("click", () => {
-      initializeFn(state, ui);
+  // Start Game button
+  startGameBtn.addEventListener("click", () => {
+    state.isGameStarted = true;
+    render(state, ui);
+    // Trigger AI move if AI is configured to play first
+    if (ui.aiEnabled && state.turn === ui.aiPlayer) {
       checkAndExecuteAIMove(state, ui);
-    });
+    }
+  });
+
+  // Reset button
+  resetBtn.addEventListener("click", () => {
+    state.isGameStarted = false;
+    initializeFn(state, ui);
+  });
 
   // AI Difficulty dropdown
-  document.querySelector("#ai-difficulty").addEventListener("change", (event) => {
+  aiDifficultySelect.addEventListener("change", (event) => {
     const value = event.target.value;
     
     if (value === 'none') {
@@ -400,18 +458,20 @@ function setupEventListeners(state, ui, initializeFn) {
       ui.aiDifficulty = value;
       console.log(`AI difficulty set to: ${value}`);
       
-      // If it's AI's turn, trigger a move
-      checkAndExecuteAIMove(state, ui);
+      // If it's AI's turn and game started, trigger a move
+      if (state.isGameStarted) {
+        checkAndExecuteAIMove(state, ui);
+      }
     }
   });
 
   // AI Player dropdown
-  document.querySelector("#ai-player").addEventListener("change", (event) => {
+  aiPlayerSelect.addEventListener("change", (event) => {
     ui.aiPlayer = event.target.value;
     console.log(`AI now plays as: ${ui.aiPlayer}`);
     
-    // If it's AI's turn now, trigger a move
-    if (ui.aiEnabled) {
+    // If it's AI's turn now and game started, trigger a move
+    if (ui.aiEnabled && state.isGameStarted) {
       checkAndExecuteAIMove(state, ui);
     }
   });

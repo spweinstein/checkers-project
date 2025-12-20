@@ -10,6 +10,7 @@
   <body>
     <header>
       <h1>Checkers</h1>
+      <div id="status-indicator"></div>
       <div id="message"></div>
     </header>
     <main>
@@ -210,10 +211,11 @@
     </main>
     <footer>
       <div id="controls">
-        <button id="reset">Reset</button>
+        <button id="start-game" title="Click to start a new game">Start Game</button>
+        <button id="reset" title="Reset the current game">Reset</button>
         
         <label for="ai-difficulty">AI Difficulty:</label>
-        <select id="ai-difficulty">
+        <select id="ai-difficulty" title="Select AI difficulty level">
           <option value="none">2-Player</option>
           <option value="veryeasy">Very Easy</option>
           <option value="easy">Easy</option>
@@ -223,7 +225,7 @@
         </select>
         
         <label for="ai-player">AI Plays:</label>
-        <select id="ai-player">
+        <select id="ai-player" title="Choose which color the AI plays">
           <option value="Black" selected>Black</option>
           <option value="White">White</option>
         </select>
