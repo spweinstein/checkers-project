@@ -5,10 +5,11 @@ import { generateAllLegalMoves, getRowIndex } from "./game.js";
 /*===========================AI CONFIGURATION=======================*/
 
 const DIFFICULTY_DEPTHS = {
+  veryeasy: 1,
   easy: 2,
   medium: 4,
   hard: 6,
-  expert: 8,
+  veryhard: 8,
 };
 
 const PIECE_VALUES = {
