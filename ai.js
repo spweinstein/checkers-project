@@ -119,8 +119,14 @@ function applyMoveComplete(state, move) {
     newState.winner = newState.players[1];
   } else if (!boardString.includes(newState.players[1])) {
     newState.winner = newState.players[0];
+  } else {
+    newState.winner = null;
   }
 
+  // Check for tie: no winner and no legal moves
+  newState.isTie =
+    !newState.winner &&
+    (!newState.legalMoves || newState.legalMoves.length === 0);
   return newState;
 }
 
