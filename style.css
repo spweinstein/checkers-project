@@ -91,11 +91,26 @@ body {
   padding: 10px;
 }
 
-header,
+header {
+  width: 100%;
+  max-width: 70vh;
+  height: auto;
+  min-height: 30vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: beige;
+  text-align: center;
+  padding: 15px;
+  gap: 8px;
+}
+
 footer {
   width: 100%;
   max-width: 70vh;
-  height: 15vh;
+  height: 5vh;
+  min-height: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -107,18 +122,20 @@ footer {
 
 header h1 {
   font-size: clamp(1rem, 3vh, 2rem);
-  margin-bottom: 5px;
+  margin-bottom: 0;
 }
 
 div#message {
   font-size: clamp(0.75rem, 2vh, 1.25rem);
+  min-height: 1.5em;
 }
 
 #status-indicator {
   font-size: clamp(0.7rem, 1.8vh, 1.1rem);
   font-style: italic;
   color: #555;
-  margin-bottom: 5px;
+  margin-bottom: 0;
+  min-height: 1.2em;
 }
 
 main {
@@ -126,15 +143,16 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 div.game {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  width: min(70vh, 90vw);
+  width: min(55vh, 90vw);
   max-width: 100%;
-  max-height: 70vh;
+  max-height: 55vh;
   aspect-ratio: 1;
   border: 5px solid black;
 }
@@ -178,8 +196,8 @@ div.cell.has-piece.King > div {
 }
 
 #reset {
-  font-size: clamp(0.75rem, 2vh, 1.25rem);
-  padding: 8px 16px;
+  font-size: clamp(0.65rem, 1.8vh, 1.1rem);
+  padding: 6px 12px;
   border: 3px solid orange;
   border-radius: 10px;
   background-color: rgba(255, 165, 0, 0.5);
@@ -195,8 +213,8 @@ div.cell.has-piece.King > div {
 }
 
 #start-game {
-  font-size: clamp(0.75rem, 2vh, 1.25rem);
-  padding: 8px 16px;
+  font-size: clamp(0.65rem, 1.8vh, 1.1rem);
+  padding: 6px 12px;
   border: 3px solid #4caf50;
   border-radius: 10px;
   background-color: rgba(76, 175, 80, 0.5);
@@ -226,22 +244,30 @@ select:disabled {
 
 #controls {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
-  margin: 5px 0;
-  flex-wrap: wrap;
+  margin-top: 5px;
+  width: 100%;
+}
+
+.controls-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 #controls label {
   font-weight: bold;
-  margin-left: 10px;
-  font-size: clamp(0.7rem, 1.8vh, 1rem);
+  margin-left: 8px;
+  font-size: clamp(0.65rem, 1.6vh, 0.9rem);
 }
 
 #controls select {
-  padding: 5px 10px;
-  font-size: clamp(0.7rem, 1.8vh, 0.95rem);
+  padding: 4px 8px;
+  font-size: clamp(0.65rem, 1.6vh, 0.85rem);
   border: 2px solid #333;
   border-radius: 4px;
   background: white;
@@ -254,8 +280,15 @@ select:disabled {
 
 /* Mobile adjustments */
 @media (max-width: 600px) or (max-height: 600px) {
+  header {
+    min-height: 35vh;
+    padding: 12px;
+  }
+
   div.game {
     border-width: 3px;
+    width: min(45vh, 90vw);
+    max-height: 45vh;
   }
 
   div.cell.has-piece > div {
@@ -268,17 +301,24 @@ select:disabled {
 
   #reset {
     border-width: 2px;
+    padding: 5px 10px;
   }
 
   #start-game {
     border-width: 2px;
+    padding: 5px 10px;
   }
 
   #controls {
-    gap: 5px;
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  .controls-row {
+    gap: 4px;
   }
 
   #controls label {
-    margin-left: 5px;
+    margin-left: 4px;
   }
 }
