@@ -29,9 +29,9 @@ function initializeUI(state, ui) {
   ui.captureStart = null;
   ui.captureCursor = 0;
   ui.activeJumpSequences = [];
-  ui.aiEnabled = true;
-  ui.aiPlayer = 'Black';
-  ui.aiDifficulty = 'medium';
+  if (ui.aiEnabled === undefined) ui.aiEnabled = true;
+  if (ui.aiPlayer === undefined) ui.aiPlayer = 'Black';
+  if (ui.aiDifficulty === undefined) ui.aiDifficulty = 'medium';
   for (let i = 0; i < 64; i++) {
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
