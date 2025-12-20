@@ -95,7 +95,7 @@ header {
   width: 100%;
   max-width: 70vh;
   height: auto;
-  min-height: 30vh;
+  min-height: 25vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
