@@ -114,6 +114,13 @@ div#message {
   font-size: clamp(0.75rem, 2vh, 1.25rem);
 }
 
+#status-indicator {
+  font-size: clamp(0.7rem, 1.8vh, 1.1rem);
+  font-style: italic;
+  color: #555;
+  margin-bottom: 5px;
+}
+
 main {
   width: 100%;
   display: flex;
@@ -187,22 +194,54 @@ div.cell.has-piece.King > div {
   background-color: rgba(255, 165, 0, 0.9);
 }
 
+#start-game {
+  font-size: clamp(0.75rem, 2vh, 1.25rem);
+  padding: 8px 16px;
+  border: 3px solid #4caf50;
+  border-radius: 10px;
+  background-color: rgba(76, 175, 80, 0.5);
+  cursor: pointer;
+}
+
+#start-game:hover {
+  background-color: rgba(76, 175, 80, 0.7);
+}
+
+#start-game:active {
+  background-color: rgba(76, 175, 80, 0.9);
+}
+
+button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #999;
+}
+
+select:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
 #controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-  margin: 10px 0;
+  margin: 5px 0;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 #controls label {
   font-weight: bold;
-  margin-left: 15px;
+  margin-left: 10px;
+  font-size: clamp(0.7rem, 1.8vh, 1rem);
 }
 
 #controls select {
   padding: 5px 10px;
-  font-size: 14px;
+  font-size: clamp(0.7rem, 1.8vh, 0.95rem);
   border: 2px solid #333;
   border-radius: 4px;
   background: white;
@@ -229,5 +268,17 @@ div.cell.has-piece.King > div {
 
   #reset {
     border-width: 2px;
+  }
+
+  #start-game {
+    border-width: 2px;
+  }
+
+  #controls {
+    gap: 5px;
+  }
+
+  #controls label {
+    margin-left: 5px;
   }
 }
