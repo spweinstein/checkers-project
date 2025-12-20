@@ -57,7 +57,7 @@ function updateStatusIndicator(state) {
   if (!state.isGameStarted) {
     statusIndicator.textContent = "Set your preferences and click 'Start Game' to begin.";
   } else if (state.winner || state.isTie) {
-    statusIndicator.textContent = "Set your preferences and click 'Start Game' to begin.";
+    statusIndicator.textContent = "Game finished! Set your preferences and click 'Start Game' for a new game.";
   } else {
     statusIndicator.textContent = "Game in progress! Play your move or click 'Reset' to restart.";
   }
@@ -442,7 +442,6 @@ function setupEventListeners(state, ui, initializeFn) {
 
   // Reset button
   resetBtn.addEventListener("click", () => {
-    state.isGameStarted = false;
     initializeFn(state, ui);
   });
 
