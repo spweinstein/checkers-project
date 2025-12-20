@@ -11,6 +11,8 @@ import {
   switchPlayerTurn,
 } from "./game.js";
 
+import { getAIMove } from "./ai.js";
+
 /*===========================UI CONSTANTS=======================*/
 
 const boardCells = document.querySelectorAll("div.game > div.cell");
@@ -27,6 +29,9 @@ function initializeUI(state, ui) {
   ui.captureStart = null;
   ui.captureCursor = 0;
   ui.activeJumpSequences = [];
+  if (ui.aiEnabled === undefined) ui.aiEnabled = true;
+  if (ui.aiPlayer === undefined) ui.aiPlayer = 'Black';
+  if (ui.aiDifficulty === undefined) ui.aiDifficulty = 'medium';
   for (let i = 0; i < 64; i++) {
     const isCellEven = i % 2 === 0;
     const rowIndex = getRowIndex(i);
@@ -187,6 +192,7 @@ function handleRegularClick(state, ui, cellIndex) {
     if (selectedMove) {
       console.log(`Executing regular move: ${selectedMove.path.join(" -> ")}`);
       executeMove(state, ui, selectedMove, unselectPiece);
+      checkAndExecuteAIMove(state, ui);
       return true;
     }
   }
@@ -311,6 +317,37 @@ function handleEndJumpSeq(state, ui) {
   switchPlayerTurn(state);
   checkForWinner(state);
   checkForTie(state);
+  
+  // Check if AI should move
+  checkAndExecuteAIMove(state, ui);
+}
+
+/*===========================AI INTEGRATION=======================*/
+
+function checkAndExecuteAIMove(state, ui) {
+  // Check if AI should move
+  if (!ui.aiEnabled || state.turn !== ui.aiPlayer || state.winner || state.isTie) {
+    return;
+  }
+  
+  // Check if there are any legal moves available
+  if (!state.legalMoves || state.legalMoves.length === 0) {
+    return;
+  }
+  
+  // Add small delay for better UX
+  setTimeout(() => {
+    const aiMove = getAIMove(state, ui.aiDifficulty);
+    
+    if (aiMove) {
+      console.log(`AI executing move: ${aiMove.path.join(' -> ')}`);
+      executeMove(state, ui, aiMove, unselectPiece);
+      render(state, ui);
+      
+      // Check if AI should move again (in case both players are AI)
+      checkAndExecuteAIMove(state, ui);
+    }
+  }, 300);
 }
 
 function handleClick(state, ui, event) {
@@ -346,7 +383,38 @@ function setupEventListeners(state, ui, initializeFn) {
 
   document
     .querySelector("#reset")
-    .addEventListener("click", () => initializeFn(state, ui));
+    .addEventListener("click", () => {
+      initializeFn(state, ui);
+      checkAndExecuteAIMove(state, ui);
+    });
+
+  // AI Difficulty dropdown
+  document.querySelector("#ai-difficulty").addEventListener("change", (event) => {
+    const value = event.target.value;
+    
+    if (value === 'none') {
+      ui.aiEnabled = false;
+      console.log("AI disabled - 2 player mode");
+    } else {
+      ui.aiEnabled = true;
+      ui.aiDifficulty = value;
+      console.log(`AI difficulty set to: ${value}`);
+      
+      // If it's AI's turn, trigger a move
+      checkAndExecuteAIMove(state, ui);
+    }
+  });
+
+  // AI Player dropdown
+  document.querySelector("#ai-player").addEventListener("change", (event) => {
+    ui.aiPlayer = event.target.value;
+    console.log(`AI now plays as: ${ui.aiPlayer}`);
+    
+    // If it's AI's turn now, trigger a move
+    if (ui.aiEnabled) {
+      checkAndExecuteAIMove(state, ui);
+    }
+  });
 }
 
 /*===========================TEST HELPERS=======================*/
