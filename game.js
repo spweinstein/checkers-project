@@ -305,6 +305,7 @@ function initializeGame(state) {
   state.turn = state.players[0];
   state.isJumping = false;
   state.forcedCaptures = false;
+  state.isGameStarted = false;
   for (let i = 0; i < 64; i++) {
     // removePiece(state, i);
     const isCellEven = i % 2 === 0;

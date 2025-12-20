@@ -15,6 +15,7 @@ import {
 
 const boardCells = document.querySelectorAll("div.game > div.cell");
 const msgCell = document.querySelector("#message");
+const statusIndicator = document.querySelector("#status-indicator");
 
 /*===========================UI INITIALIZATION=======================*/
 
@@ -42,6 +43,51 @@ function initializeUI(state, ui) {
 }
 
 /*===========================UI RENDERING=======================*/
+
+function updateStatusIndicator(state) {
+  if (!state.isGameStarted) {
+    statusIndicator.textContent = "Set your preferences and click 'Start Game' to begin.";
+  } else if (state.winner || state.isTie) {
+    statusIndicator.textContent = "Game reset. Adjust settings or start a new game.";
+  } else {
+    statusIndicator.textContent = "Game in progress! Play your move or click 'Reset' to restart.";
+  }
+}
+
+function updateControlStates(state) {
+  const startBtn = document.querySelector("#start-game");
+  const resetBtn = document.querySelector("#reset");
+  const aiDifficulty = document.querySelector("#ai-difficulty");
+  const playerSelection = document.querySelector("#player-selection");
+
+  if (!state.isGameStarted) {
+    // Pre-game state
+    startBtn.disabled = false;
+    startBtn.title = "Click to start a new game";
+    
+    resetBtn.disabled = true;
+    resetBtn.title = "Disabled - game has not started";
+    
+    aiDifficulty.disabled = false;
+    aiDifficulty.title = "Select AI difficulty level";
+    
+    playerSelection.disabled = false;
+    playerSelection.title = "Choose which player you want to be";
+  } else {
+    // Game-in-play state
+    startBtn.disabled = true;
+    startBtn.title = "Disabled while the game is in progress";
+    
+    resetBtn.disabled = false;
+    resetBtn.title = "Reset the current game";
+    
+    aiDifficulty.disabled = true;
+    aiDifficulty.title = "Disabled while the game is in progress";
+    
+    playerSelection.disabled = true;
+    playerSelection.title = "Disabled while the game is in progress";
+  }
+}
 
 function updateMessage(msg) {
   msgCell.textContent = msg;
@@ -97,7 +143,13 @@ function render(state, ui) {
     updateMessage(
       `Congratulations, player ${state.winner}! Hit reset to play again.`
     );
-  else updateMessage(`It is player ${state.turn}'s turn`);
+  else if (state.isGameStarted)
+    updateMessage(`It is player ${state.turn}'s turn`);
+  else
+    updateMessage("");
+
+  updateStatusIndicator(state);
+  updateControlStates(state);
 }
 
 /*===========================UI PIECE SELECTION=======================*/
@@ -314,7 +366,7 @@ function handleEndJumpSeq(state, ui) {
 }
 
 function handleClick(state, ui, event) {
-  if (state.winner || state.isTie) return;
+  if (state.winner || state.isTie || !state.isGameStarted) return;
 
   const el = event.currentTarget;
   const cellIndex = el.id * 1;
@@ -346,7 +398,17 @@ function setupEventListeners(state, ui, initializeFn) {
 
   document
     .querySelector("#reset")
-    .addEventListener("click", () => initializeFn(state, ui));
+    .addEventListener("click", () => {
+      state.isGameStarted = false;
+      initializeFn(state, ui);
+    });
+
+  document
+    .querySelector("#start-game")
+    .addEventListener("click", () => {
+      state.isGameStarted = true;
+      render(state, ui);
+    });
 }
 
 /*===========================TEST HELPERS=======================*/
@@ -362,6 +424,8 @@ function clearPlayerPieces(state, ui, playerIdx = 0) {
 
 export {
   initializeUI,
+  updateStatusIndicator,
+  updateControlStates,
   updateMessage,
   render,
   selectPiece,

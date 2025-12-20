@@ -114,6 +114,13 @@ div#message {
   font-size: clamp(0.75rem, 2vh, 1.25rem);
 }
 
+div#status-indicator {
+  font-size: clamp(0.65rem, 1.8vh, 1rem);
+  font-style: italic;
+  color: #555;
+  margin-bottom: 5px;
+}
+
 main {
   width: 100%;
   display: flex;
@@ -170,7 +177,37 @@ div.cell.has-piece.King > div {
   border: 6px double black;
 }
 
-#reset {
+/* Controls layout */
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.controls label {
+  font-size: clamp(0.7rem, 1.8vh, 1rem);
+  margin-left: 0.5rem;
+}
+
+.controls select {
+  font-size: clamp(0.7rem, 1.8vh, 1rem);
+  padding: 6px 10px;
+  border: 2px solid #666;
+  border-radius: 5px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.controls select:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Button styles */
+button {
   font-size: clamp(0.75rem, 2vh, 1.25rem);
   padding: 8px 16px;
   border: 3px solid orange;
@@ -179,12 +216,32 @@ div.cell.has-piece.King > div {
   cursor: pointer;
 }
 
-#reset:hover {
+button:hover:not(:disabled) {
   background-color: rgba(255, 165, 0, 0.7);
 }
 
-#reset:active {
+button:active:not(:disabled) {
   background-color: rgba(255, 165, 0, 0.9);
+}
+
+button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #999;
+}
+
+#start-game {
+  border-color: green;
+  background-color: rgba(0, 128, 0, 0.3);
+}
+
+#start-game:hover:not(:disabled) {
+  background-color: rgba(0, 128, 0, 0.5);
+}
+
+#start-game:active:not(:disabled) {
+  background-color: rgba(0, 128, 0, 0.7);
 }
 
 /* Mobile adjustments */
@@ -201,7 +258,16 @@ div.cell.has-piece.King > div {
     border-width: 4px;
   }
 
-  #reset {
+  button {
     border-width: 2px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls label {
+    margin-left: 0;
   }
 }
