@@ -12,29 +12,6 @@
       <h1>Checkers</h1>
       <div id="status-indicator"></div>
       <div id="message"></div>
-      <div id="controls">
-        <div class="controls-row">
-          <button id="start-game" title="Click to start a new game">Start Game</button>
-          <button id="reset" title="Reset the current game">Reset</button>
-        </div>
-        <div class="controls-row">
-          <label for="ai-difficulty">AI Difficulty:</label>
-          <select id="ai-difficulty" title="Select AI difficulty level">
-            <option value="none">2-Player</option>
-            <option value="veryeasy">Very Easy</option>
-            <option value="easy">Easy</option>
-            <option value="medium" selected>Medium</option>
-            <option value="hard">Hard</option>
-            <option value="veryhard">Very Hard</option>
-          </select>
-          
-          <label for="ai-player">AI Plays:</label>
-          <select id="ai-player" title="Choose which color the AI plays">
-            <option value="Black" selected>Black</option>
-            <option value="White">White</option>
-          </select>
-        </div>
-      </div>
     </header>
     <main>
       <div class="game" id="game">
@@ -233,6 +210,26 @@
       </div>
     </main>
     <footer>
+      <div id="controls">
+        <button id="start-game" title="Click to start a new game">Start Game</button>
+        <button id="reset" title="Reset the current game">Reset</button>
+        
+        <label for="ai-difficulty">AI Difficulty:</label>
+        <select id="ai-difficulty" title="Select AI difficulty level">
+          <option value="none">2-Player</option>
+          <option value="veryeasy">Very Easy</option>
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+          <option value="veryhard">Very Hard</option>
+        </select>
+        
+        <label for="ai-player">AI Plays:</label>
+        <select id="ai-player" title="Choose which color the AI plays">
+          <option value="Black" selected>Black</option>
+          <option value="White">White</option>
+        </select>
+      </div>
     </footer>
   </body>
 </html>
