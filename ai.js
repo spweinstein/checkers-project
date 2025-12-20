@@ -47,18 +47,28 @@ function evaluatePosition(state, player) {
       const advancement = player === "White" ? rowIndex : 7 - rowIndex;
       score += advancement * 0.1;
 
-      // Center control bonus (columns 3 and 4 are more valuable)
-      if (colIndex >= 3 && colIndex <= 4) {
-        score += 0.3;
+      // Center control bonus:
+      // - Outer center columns (2 and 5) are valuable
+      // - Inner center columns (3 and 4) are slightly more valuable
+      if (colIndex >= 2 && colIndex <= 5) {
+        // Base bonus for being in the 4 central columns
+        score += 0.2;
+        // Additional bonus for the two innermost center columns
+        if (colIndex === 3 || colIndex === 4) {
+          score += 0.1;
+        }
       }
     } else if (piecePlayer !== player && !isKing) {
       // Penalize opponent's advancement
       const advancement = player === "White" ? 7 - rowIndex : rowIndex;
       score -= advancement * 0.1;
 
-      // Penalize opponent's center control
-      if (colIndex >= 3 && colIndex <= 4) {
-        score -= 0.3;
+      // Penalize opponent's center control using the same tiers
+      if (colIndex >= 2 && colIndex <= 5) {
+        score -= 0.2;
+        if (colIndex === 3 || colIndex === 4) {
+          score -= 0.1;
+        }
       }
     }
   });
